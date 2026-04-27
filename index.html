@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YumCycle Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2D9B4E;--green-d:#1a5c2e;--green-l:rgba(45,155,78,0.12);
+  --amber:#F5A623;--teal:#1ABCB0;--red:#EF4444;--purple:#8B5CF6;--blue:#3B82F6;
+  --ink:#0D1117;--ink2:#161b22;--ink3:#21262d;
+  --border:rgba(255,255,255,0.07);--card:rgba(255,255,255,0.04);
+  --text:rgba(255,255,255,0.85);--muted:rgba(255,255,255,0.4);--dim:rgba(255,255,255,0.2);
+  --font-h:'Syne',sans-serif;--font-m:'DM Mono',monospace;--font-b:'Inter',sans-serif;
+}
+body{font-family:var(--font-b);background:var(--ink);color:var(--text);min-height:100vh;display:flex}
+
+/* ── Sidebar ── */
+.sidebar{width:220px;min-width:220px;background:var(--ink2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0}
+.logo-txt{font-family:var(--font-h);font-size:18px;font-weight:800}
+.logo-txt span{color:var(--green)}
+.nav{padding:8px 0;flex:1}
+.nav-sec{padding:14px 16px 4px;font-size:10px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--card)}
+.nav-item.active{color:var(--green);border-left-color:var(--green);background:var(--green-l)}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+.sidebar-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--dim);line-height:1.7}
+
+/* ── Main ── */
+.main{flex:1;overflow-x:hidden;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;background:rgba(13,17,23,0.92);backdrop-filter:blur(12px)}
+.page-title{font-family:var(--font-h);font-size:19px;font-weight:700}
+.topbar-r{display:flex;align-items:center;gap:10px}
+.status-pill{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--green-l);color:#4ade80;border:1px solid rgba(45,155,78,0.3);cursor:pointer}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+/* ── Content ── */
+.content{padding:24px 28px;flex:1}
+.page{display:none}.page.active{display:block}
+
+/* ── Stats grid ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;transition:border-color .2s;cursor:default}
+.stat:hover{border-color:rgba(255,255,255,0.12)}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.stat-val{font-family:var(--font-m);font-size:28px;font-weight:500;line-height:1}
+.stat-sub{font-size:12px;margin-top:8px;color:#4ade80}
+
+/* ── Panel ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:var(--font-h);font-size:14px;font-weight:700}
+.panel-act{font-size:12px;color:var(--green);cursor:pointer;background:none;border:none;font-family:inherit}
+
+/* ── Table ── */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
+
+/* ── Pills ── */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.p-green{background:var(--green-l);color:#4ade80}
+.p-amber{background:rgba(245,166,35,.15);color:#fbbf24}
+.p-red{background:rgba(239,68,68,.15);color:#f87171}
+.p-teal{background:rgba(26,188,176,.15);color:#2dd4bf}
+.p-purple{background:rgba(139,92,246,.15);color:#a78bfa}
+.p-blue{background:rgba(59,130,246,.15);color:#60a5fa}
+.p-gray{background:rgba(255,255,255,.06);color:var(--muted)}
+
+/* ── 2-col ── */
+.two{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-bottom:20px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+
+/* ── Feed ── */
+.feed-item{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);align-items:flex-start}
+.feed-item:last-child{border-bottom:none}
+.feed-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.feed-body{flex:1}
+.feed-title{font-size:13px;font-weight:500}
+.feed-time{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ── Carbon chart ── */
+.bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding:16px 20px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bar-val{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;position:relative;overflow:hidden}
+.bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,var(--green),rgba(45,155,78,.35))}
+.bar-fill.cur::after{background:linear-gradient(180deg,#4ade80,var(--green))}
+.bar-label{font-size:10px;color:var(--muted)}
+
+/* ── Vendor rows ── */
+.vrow{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.vrow:last-child{border-bottom:none}
+.vav{width:36px;height:36px;border-radius:10px;background:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.vname{font-size:13px;font-weight:600}
+.vsub{font-size:11px;color:var(--muted);margin-top:2px}
+.vstat{margin-left:auto;text-align:right}
+.vrev{font-family:var(--font-m);font-size:13px;font-weight:500}
+.vord{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);border:1px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--green);background:var(--green-l);border-color:rgba(45,155,78,.25)}
+
+/* ── Search ── */
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 14px}
+.search input{background:none;border:none;outline:none;font-size:13px;color:var(--text);font-family:inherit;width:200px}
+.search input::placeholder{color:var(--muted)}
+
+/* ── Btn ── */
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-p{background:var(--green);color:#fff}.btn-p:hover{background:#38b55e}
+.btn-g{background:var(--card);color:var(--text);border:1px solid var(--border)}.btn-g:hover{background:rgba(255,255,255,.06)}
+
+/* ── Rider map card ── */
+.rider-card{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.rider-card:last-child{border-bottom:none}
+.rider-av{width:40px;height:40px;border-radius:50%;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;color:#a78bfa}
+.rider-name{font-size:14px;font-weight:600}
+.rider-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.rider-stat{margin-left:auto;text-align:right}
+
+/* ── Wallet card ── */
+.wallet-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.wallet-row:last-child{border-bottom:none}
+.wallet-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+.tier-bar{flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.tier-fill{height:100%;border-radius:3px}
+
+/* ── Carbon progress ── */
+.carbon-hero{background:linear-gradient(135deg,#0f2d13,#1a4a2e);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap}
+.carbon-big{font-family:var(--font-m);font-size:42px;font-weight:500;color:#4ade80;line-height:1}
+
+/* ── Loading ── */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.spin{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div class="logo-txt">Yum<span>Cycle</span></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Main</div>
+    <div class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">📊</span>Overview</div>
+    <div class="nav-item" onclick="go('vendors',this)"><span class="nav-icon">🏪</span>Vendors</div>
+    <div class="nav-item" onclick="go('orders',this)"><span class="nav-icon">📦</span>Orders</div>
+    <div class="nav-item" onclick="go('customers',this)"><span class="nav-icon">👥</span>Customers</div>
+    <div class="nav-item" onclick="go('riders',this)"><span class="nav-icon">🛵</span>Riders</div>
+    <div class="nav-item" onclick="go('deliveries',this)"><span class="nav-icon">🗺️</span>Deliveries</div>
+    <div class="nav-sec">Growth</div>
+    <div class="nav-item" onclick="go('livelit',this)"><span class="nav-icon">🔴</span>LiveLit House</div>
+    <div class="nav-item" onclick="go('outreach',this)"><span class="nav-icon">📣</span>Outreach</div>
+    <div class="nav-item" onclick="go('waitlist',this)"><span class="nav-icon">⏳</span>Waitlist</div>
+    <div class="nav-sec">Sustainability</div>
+    <div class="nav-item" onclick="go('carbon',this)"><span class="nav-icon">🌿</span>Carbon</div>
+    <div class="nav-item" onclick="go('wallets',this)"><span class="nav-icon">💳</span>Wallets</div>
+    <div class="nav-item" onclick="go('leaderboard',this)"><span class="nav-icon">🏆</span>Leaderboard</div>
+    <div class="nav-item" onclick="go('compliance',this)"><span class="nav-icon">📋</span>Compliance</div>
+    <div class="nav-sec">System</div>
+    <div class="nav-item" onclick="go('analytics',this)"><span class="nav-icon">📈</span>Analytics</div>
+    <div class="nav-item" onclick="go('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
+  </nav>
+  <div class="sidebar-foot">
+    admin.yumcycle.com<br>
+    <span style="opacity:.5">Grabnex Ecommerce Ltd<br>Co. No. 15288512</span>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="ptitle">Overview</div>
+    <div class="topbar-r">
+      <div class="search"><span>🔍</span><input placeholder="Search..." /></div>
+      <div class="status-pill" onclick="fetchAll()">🟢 Live · Refresh</div>
+      <div class="avatar">A</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+<!-- ═══════════════ OVERVIEW ═══════════════ -->
+<div class="page active" id="p-overview">
+  <div class="stats" id="ov-stats">
+    <div class="stat"><div class="stat-label">Total Orders</div><div class="stat-val" id="ov-orders" style="color:var(--green)">--</div><div class="stat-sub" id="ov-orders-sub">loading…</div></div>
+    <div class="stat"><div class="stat-label">Active Vendors</div><div class="stat-val" id="ov-vendors">--</div><div class="stat-sub">Leeds &amp; Hull</div></div>
+    <div class="stat"><div class="stat-label">Revenue (GBP)</div><div class="stat-val" id="ov-revenue" style="color:var(--amber)">--</div><div class="stat-sub" id="ov-rev-sub">loading…</div></div>
+    <div class="stat"><div class="stat-label">CO₂ Saved (kg)</div><div class="stat-val" id="ov-co2" style="color:var(--teal)">--</div><div class="stat-sub">WRAP UK 2024</div></div>
+    <div class="stat"><div class="stat-label">Active Riders</div><div class="stat-val" id="ov-riders" style="color:var(--purple)">--</div><div class="stat-sub">Online now</div></div>
+    <div class="stat"><div class="stat-label">LiveLit Creators</div><div class="stat-val" id="ov-creators" style="color:var(--red)">--</div><div class="stat-sub">In network</div></div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">Recent Orders</div><button class="panel-act" onclick="go('orders',null)">View all →</button></div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Customer</th><th>Vendor</th><th>Amount</th><th>Status</th><th>CO₂</th></tr></thead><tbody id="ov-orders-tbl"><tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">Live Activity</div><span style="font-size:11px;color:var(--muted)">Auto-refresh 8s</span></div>
+      <div id="ov-feed"></div>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">Top Vendors</div><button class="panel-act" onclick="go('vendors',null)">View all →</button></div>
+      <div id="ov-top-vendors"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">CO₂ Saved — Monthly (kg)</div><span id="ov-co2-total" style="font-family:var(--font-m);font-size:12px;color:var(--teal)">--</span></div>
+      <div class="bars" id="ov-chart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VENDORS ═══════════════ -->
+<div class="page" id="p-vendors">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="tabs">
+      <div class="tab active" onclick="ftab(this)">All</div>
+      <div class="tab" onclick="ftab(this)">Approved</div>
+      <div class="tab" onclick="ftab(this)">Pending</div>
+      <div class="tab" onclick="ftab(this)">Suspended</div>
+    </div>
+    <button class="btn btn-p">+ Invite Vendor</button>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">All Vendors</div><div class="search"><span>🔍</span><input placeholder="Search vendors…" /></div></div>
+    <div class="tw"><table><thead><tr><th>Vendor</th><th>Type</th><th>City</th><th>Listings</th><th>Orders</th><th>Revenue</th><th>CO₂ Saved</th><th>Status</th></tr></thead><tbody id="vendors-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ORDERS ═══════════════ -->
+<div class="page" id="p-orders">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="tabs">
+      <div class="tab active" onclick="ftab(this)">All Orders</div>
+      <div class="tab" onclick="ftab(this)">Pending</div>
+      <div class="tab" onclick="ftab(this)">Accepted</div>
+      <div class="tab" onclick="ftab(this)">Completed</div>
+      <div class="tab" onclick="ftab(this)">Cancelled</div>
+    </div>
+    <button class="btn btn-g">Export CSV</button>
+  </div>
+  <div class="panel">
+    <div class="tw"><table><thead><tr><th>Order ID</th><th>Customer</th><th>Vendor</th><th>Items</th><th>Total</th><th>CO₂</th><th>Type</th><th>Affiliate</th><th>Status</th><th>Date</th></tr></thead><tbody id="orders-tbl"><tr><td colspan="10" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ CUSTOMERS ═══════════════ -->
+<div class="page" id="p-customers">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="panel-title">All Customers</div>
+    <button class="btn btn-g">Export CSV</button>
+  </div>
+  <div class="panel">
+    <div class="tw"><table><thead><tr><th>Customer</th><th>Email</th><th>City</th><th>Orders</th><th>Total Spend</th><th>CO₂ Saved</th><th>Wallet (kg)</th><th>Tier</th><th>Joined</th></tr></thead><tbody id="customers-tbl"><tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ RIDERS ═══════════════ -->
+<div class="page" id="p-riders">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Riders</div><div class="stat-val" id="r-total" style="color:var(--purple)">--</div><div class="stat-sub">registered</div></div>
+    <div class="stat"><div class="stat-label">Online Now</div><div class="stat-val" id="r-online" style="color:var(--green)">--</div><div class="stat-sub">available</div></div>
+    <div class="stat"><div class="stat-label">Deliveries Today</div><div class="stat-val" id="r-today" style="color:var(--amber)">--</div><div class="stat-sub">completed</div></div>
+    <div class="stat"><div class="stat-label">Avg Rating</div><div class="stat-val" id="r-rating" style="color:var(--teal)">--</div><div class="stat-sub">from customers</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Rider Network</div><button class="btn btn-p">+ Invite Rider</button></div>
+    <div class="tw"><table><thead><tr><th>Rider</th><th>Vehicle</th><th>City</th><th>Status</th><th>Deliveries</th><th>Earnings</th><th>CO₂ Share</th><th>Rating</th><th>Type</th></tr></thead><tbody id="riders-tbl"><tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+  <!-- Fee breakdown -->
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Delivery Fee Structure</div></div>
+    <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">BASE FEE</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--green)">£1.50</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">every delivery</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">PER MILE</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--amber)">£0.30</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">distance rate</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">RIDER SHARE</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--purple)">80%</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">of delivery fee</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">MAX RADIUS</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--teal)">5 mi</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">delivery zone</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DELIVERIES ═══════════════ -->
+<div class="page" id="p-deliveries">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Deliveries</div><div class="stat-val" id="d-total" style="color:var(--purple)">--</div></div>
+    <div class="stat"><div class="stat-label">Active Now</div><div class="stat-val" id="d-active" style="color:var(--green)">--</div><div class="stat-sub">in progress</div></div>
+    <div class="stat"><div class="stat-label">Avg Distance</div><div class="stat-val" id="d-dist" style="color:var(--amber)">--</div><div class="stat-sub">miles</div></div>
+    <div class="stat"><div class="stat-label">Avg Fee</div><div class="stat-val" id="d-fee" style="color:var(--teal)">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd">
+      <div class="panel-title">Recent Deliveries</div>
+      <div class="tabs" style="margin:0">
+        <div class="tab active" onclick="ftab(this)">All</div>
+        <div class="tab" onclick="ftab(this)">In Progress</div>
+        <div class="tab" onclick="ftab(this)">Delivered</div>
+        <div class="tab" onclick="ftab(this)">Failed</div>
+      </div>
+    </div>
+    <div class="tw"><table><thead><tr><th>ID</th><th>Rider</th><th>Pickup</th><th>Deliver to</th><th>Distance</th><th>Fee</th><th>Rider Payout</th><th>CO₂ Net</th><th>Status</th></tr></thead><tbody id="deliveries-tbl"><tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ LIVELIT ═══════════════ -->
+<div class="page" id="p-livelit">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Active Creators</div><div class="stat-val" style="color:var(--red)">12</div><div class="stat-sub">↑ 3 this week</div></div>
+    <div class="stat"><div class="stat-label">Lives Today</div><div class="stat-val">3</div><div class="stat-sub">2 scheduled</div></div>
+    <div class="stat"><div class="stat-label">Live Orders</div><div class="stat-val" style="color:var(--green)">84</div><div class="stat-sub">↑ 31% vs last week</div></div>
+    <div class="stat"><div class="stat-label">Affiliate Revenue</div><div class="stat-val" style="color:var(--amber)">£621</div><div class="stat-sub">10% commission</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Creator Network</div><button class="btn btn-p">+ Invite Creator</button></div>
+    <div class="tw"><table><thead><tr><th>Creator</th><th>Handle</th><th>Status</th><th>Lives</th><th>Orders</th><th>Commission</th><th>Order Link</th></tr></thead><tbody id="livelit-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ OUTREACH ═══════════════ -->
+<div class="page" id="p-outreach">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Sent This Week</div><div class="stat-val">142</div></div>
+    <div class="stat"><div class="stat-label">Response Rate</div><div class="stat-val" style="color:var(--green)">23%</div></div>
+    <div class="stat"><div class="stat-label">Awaiting Review</div><div class="stat-val" style="color:var(--amber)">18</div></div>
+    <div class="stat"><div class="stat-label">Converted</div><div class="stat-val" style="color:var(--teal)">31</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Discovered Creators — Pending Review</div><button class="btn btn-p">Run Discovery</button></div>
+    <div class="tw"><table><thead><tr><th>Creator</th><th>Platform</th><th>AI Score</th><th>Location</th><th>Followers</th><th>Status</th><th>Action</th></tr></thead><tbody id="outreach-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ WAITLIST ═══════════════ -->
+<div class="page" id="p-waitlist">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Total Waitlist</div><div class="stat-val" id="w-total" style="color:var(--green)">--</div></div>
+    <div class="stat"><div class="stat-label">Vendors</div><div class="stat-val" id="w-vendors">--</div></div>
+    <div class="stat"><div class="stat-label">Customers</div><div class="stat-val" id="w-customers">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Waitlist Signups</div><button class="btn btn-g">Export CSV</button></div>
+    <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>City</th><th>Source</th><th>Date</th></tr></thead><tbody id="waitlist-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ CARBON ═══════════════ -->
+<div class="page" id="p-carbon">
+  <div class="carbon-hero">
+    <div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:8px">🌿 CITY TOTAL — Leeds &amp; Hull</div>
+      <div class="carbon-big" id="c-total">--</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.6);margin-top:6px">kg CO₂ saved (WRAP UK 2024)</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><div style="font-size:11px;color:rgba(255,255,255,.45)">🌳 Trees equivalent</div><div style="font-family:var(--font-m);font-size:22px;color:#86efac" id="c-trees">--</div></div>
+      <div><div style="font-size:11px;color:rgba(255,255,255,.45)">🚗 Miles not driven</div><div style="font-family:var(--font-m);font-size:22px;color:#fbbf24" id="c-miles">--</div></div>
+      <div><div style="font-size:11px;color:rgba(255,255,255,.45)">🍽️ Meals rescued</div><div style="font-family:var(--font-m);font-size:22px;color:#60a5fa" id="c-meals">--</div></div>
+    </div>
+  </div>
+  <!-- Carbon credit split -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd"><div class="panel-title">Carbon Credit Distribution</div><span style="font-size:11px;color:var(--muted)">Applied to every order</span></div>
+    <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px">
+      ${[['👤 Customer','25%','var(--teal)'],['🏪 Seller','50%','var(--green)'],['🌿 YumCycle','15%','var(--amber)'],['🛵 Rider','10%','var(--purple)']].map(([l,p,c])=>`
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:14px;margin-bottom:8px">${l}</div>
+        <div style="font-family:var(--font-m);font-size:32px;font-weight:500;color:${c}">${p}</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden"><div style="width:${p};height:100%;background:${c};border-radius:2px"></div></div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Carbon Leaderboard — Top 20</div><span style="font-size:11px;color:var(--muted)">pre-verification</span></div>
+    <div class="tw"><table><thead><tr><th>Rank</th><th>Customer</th><th>CO₂ Saved</th><th>Meals</th><th>Tier</th></tr></thead><tbody id="carbon-tbl"><tr><td colspan="5" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ WALLETS ═══════════════ -->
+<div class="page" id="p-wallets">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Wallets</div><div class="stat-val" id="wlt-count" style="color:var(--purple)">--</div></div>
+    <div class="stat"><div class="stat-label">Total Balance</div><div class="stat-val" id="wlt-balance" style="color:var(--green)">--</div><div class="stat-sub">kg CO₂</div></div>
+    <div class="stat"><div class="stat-label">Total Earned</div><div class="stat-val" id="wlt-earned" style="color:var(--teal)">--</div><div class="stat-sub">kg CO₂ all time</div></div>
+    <div class="stat"><div class="stat-label">Total Redeemed</div><div class="stat-val" id="wlt-redeemed" style="color:var(--amber)">--</div><div class="stat-sub">kg CO₂</div></div>
+  </div>
+  <!-- Redemption rate: 1 kg CO₂ = £0.50 -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd"><div class="panel-title">Redemption Policy</div></div>
+    <div style="padding:20px;display:flex;gap:20px;flex-wrap:wrap">
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;flex:1;min-width:160px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">REDEMPTION RATE</div>
+        <div style="font-family:var(--font-m);font-size:26px;color:var(--amber)">1 kg = £0.50</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">discount value</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;flex:1;min-width:160px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">MINIMUM</div>
+        <div style="font-family:var(--font-m);font-size:26px;color:var(--green)">1 kg</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">per redemption</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;flex:1;min-width:160px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">CUSTOMER SHARE</div>
+        <div style="font-family:var(--font-m);font-size:26px;color:var(--purple)">25%</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">of net CO₂/order</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">All Customer Wallets</div><button class="btn btn-g">Export for Verra</button></div>
+    <div class="tw"><table><thead><tr><th>Customer</th><th>Balance (kg)</th><th>Lifetime Earned</th><th>Redeemed</th><th>Donated</th><th>Orders</th><th>Tier</th></tr></thead><tbody id="wallets-tbl"><tr><td colspan="7" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ LEADERBOARD ═══════════════ -->
+<div class="page" id="p-leaderboard">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">City CO₂ Total</div><div class="stat-val" id="lb-total" style="color:var(--green)">--</div><div class="stat-sub">kg CO₂ saved</div></div>
+    <div class="stat"><div class="stat-label">Meals Rescued</div><div class="stat-val" id="lb-meals" style="color:var(--teal)">--</div></div>
+    <div class="stat"><div class="stat-label">Trees Equivalent</div><div class="stat-val" id="lb-trees" style="color:var(--green)">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">🏆 Top 20 Rescuers — Leeds &amp; Hull</div><a href="https://dev.yumcycle.com/leaderboard" target="_blank" style="font-size:12px;color:var(--green)">View public page →</a></div>
+    <div class="tw"><table><thead><tr><th>Rank</th><th>Customer</th><th>CO₂ Saved</th><th>Meals</th><th>Tier</th></tr></thead><tbody id="lb-tbl"><tr><td colspan="5" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ COMPLIANCE ═══════════════ -->
+<div class="page" id="p-compliance">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Food Diverted</div><div class="stat-val" id="cp-kg" style="color:var(--green)">--</div><div class="stat-sub">all time (kg)</div></div>
+    <div class="stat"><div class="stat-label">Verra Status</div><div class="stat-val" style="color:var(--amber);font-size:18px">Pre-validation</div></div>
+    <div class="stat"><div class="stat-label">Data Collection</div><div class="stat-val" style="color:var(--green);font-size:18px">Active ✅</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">WRAP-Aligned Monthly Report</div><button class="btn btn-g">Export PDF</button></div>
+    <div class="tw"><table><thead><tr><th>Month</th><th>Kg Diverted</th><th>CO₂ Est.</th><th>Orders</th><th>Vendors</th><th>Audit Status</th></tr></thead><tbody id="compliance-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ANALYTICS ═══════════════ -->
+<div class="page" id="p-analytics">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">App Downloads</div><div class="stat-val">4,821</div><div class="stat-sub">↑ 12% this week</div></div>
+    <div class="stat"><div class="stat-label">DAU</div><div class="stat-val">892</div><div class="stat-sub">↑ 8%</div></div>
+    <div class="stat"><div class="stat-label">Avg Order Value</div><div class="stat-val" style="color:var(--amber)">£6.56</div></div>
+    <div class="stat"><div class="stat-label">Repeat Order Rate</div><div class="stat-val" style="color:var(--green)">64%</div></div>
+  </div>
+  <div class="panel" style="padding:24px">
+    <div class="panel-title" style="margin-bottom:12px">Platform Analytics</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.7">Connect Google Analytics or Mixpanel to see real-time user flows and retention cohorts. Your Expo app is instrumented with push notification tracking. Connect via <code style="background:var(--ink3);padding:2px 6px;border-radius:4px">config/analytics.ts</code>.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div class="page" id="p-settings">
+  <div class="panel" style="max-width:600px;padding:24px">
+    <div class="panel-title" style="margin-bottom:20px">Platform Settings</div>
+    ${[
+      ['Backend URL','https://surplus-food-app-backend.onrender.com','var(--green)'],
+      ['Company','Grabnex Ecommerce Ltd (Co. No. 15288512)','var(--text)'],
+      ['Email','hello@yumcycle.com','var(--text)'],
+      ['Cities','Leeds & Hull','var(--text)'],
+      ['Carbon Methodology','WRAP UK 2024 + DEFRA 2024','var(--teal)'],
+      ['Verra Status','Pre-validation — VM0046 pathway','var(--amber)'],
+      ['Platform Fee','20% of order total','var(--text)'],
+      ['Rider Share','80% of delivery fee','var(--purple)'],
+    ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">${l}</span><span style="font-size:13px;font-weight:500;color:${c}">${v}</span></div>`).join('')}
+  </div>
+</div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+const API = 'https://surplus-food-app-backend.onrender.com/api'
+const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',analytics:'Analytics',settings:'Settings'}
+
+function go(id, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  document.getElementById('p-' + id).classList.add('active')
+  if (navEl) navEl.classList.add('active')
+  document.getElementById('ptitle').textContent = titles[id] || id
+}
+function ftab(el) {
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+}
+function pill(label, type) {
+  return `<span class="pill p-${type}">${label}</span>`
+}
+const rn  = (a,b) => Math.floor(Math.random()*(b-a+1))+a
+const ra  = a => a[rn(0,a.length-1)]
+const fmt = n => n >= 1000 ? (n/1000).toFixed(1)+'k' : n
+const names   = ['Aisha J','Mohammed A','Sarah C','James W','Fatima P','Tom B','Priya S','Luke D','Zainab K','Oliver M']
+const vendors = ['Curry House','Jade Garden','Green Bowl','Spice Route',"Mama's","Falafel Corner","Pie Shop","Noodle Bar"]
+const cities  = ['Leeds LS1','Leeds LS6','Hull HU1','Leeds LS2','Hull HU3']
+
+// ── Fetch real data from backend ─────────────────────────────────
+async function fetchLeaderboard() {
+  try {
+    const r = await fetch(`${API}/carbon/leaderboard`)
+    const d = await r.json()
+    return d?.data ?? d
+  } catch { return null }
+}
+
+async function fetchAll() {
+  // Leaderboard / carbon
+  const lb = await fetchLeaderboard()
+  if (lb) {
+    const total = lb.cityTotalCO2Kg ?? 0
+    const meals = lb.cityTotalMeals ?? 0
+    setText('ov-co2',     total.toFixed(1))
+    setText('c-total',    total.toFixed(1))
+    setText('c-trees',    Math.round(total/21))
+    setText('c-miles',    Math.round(total/0.17))
+    setText('c-meals',    meals)
+    setText('lb-total',   total.toFixed(1))
+    setText('lb-meals',   meals)
+    setText('lb-trees',   Math.round(total/21))
+    setText('ov-co2-total', total.toFixed(1)+' kg total')
+    if (lb.leaderboard?.length) {
+      buildLeaderboard(lb.leaderboard)
+    }
+  }
+
+  // Build all mock sections (replace with real endpoints as they come online)
+  buildOverview()
+  buildVendors()
+  buildOrders()
+  buildCustomers()
+  buildRiders()
+  buildDeliveries()
+  buildLivelit()
+  buildOutreach()
+  buildWaitlist()
+  buildWallets()
+  buildCompliance()
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id)
+  if (el) el.textContent = val
+}
+
+function getTier(kg) {
+  if (kg >= 50) return {icon:'💎',label:'Platinum',color:'#A8D8EA'}
+  if (kg >= 20) return {icon:'🥇',label:'Gold',color:'#FFD700'}
+  if (kg >=  5) return {icon:'🥈',label:'Silver',color:'#C0C0C0'}
+  return              {icon:'🥉',label:'Bronze',color:'#CD7F32'}
+}
+
+function buildLeaderboard(data) {
+  const ranks = ['🥇','🥈','🥉']
+  const rows = data.map((e,i) => {
+    const tier = getTier(e.totalCO2Kg)
+    return `<tr>
+      <td style="font-family:var(--font-m);color:${i<3?'var(--amber)':'var(--muted)'}">${i<3?ranks[i]:'#'+(i+1)}</td>
+      <td style="font-weight:600">${e.firstName ?? 'Member'}</td>
+      <td style="font-family:var(--font-m);color:#4ade80">${e.totalCO2Kg.toFixed(2)} kg</td>
+      <td style="font-family:var(--font-m)">${e.totalMeals}</td>
+      <td><span class="pill" style="background:${tier.color}22;color:${tier.color};border:1px solid ${tier.color}44">${tier.icon} ${tier.label}</span></td>
+    </tr>`
+  }).join('')
+  const el1 = document.getElementById('carbon-tbl')
+  const el2 = document.getElementById('lb-tbl')
+  if (el1) el1.innerHTML = rows
+  if (el2) el2.innerHTML = rows
+}
+
+function buildOverview() {
+  setText('ov-orders', fmt(rn(1200,1400)))
+  setText('ov-orders-sub', '↑ 18% this month')
+  setText('ov-vendors', rn(44,50))
+  setText('ov-revenue', '£'+rn(8000,9500).toLocaleString())
+  setText('ov-rev-sub', '↑ 24% vs last month')
+  setText('ov-riders', rn(8,15))
+  setText('ov-creators', rn(10,14))
+
+  // Orders table
+  const statArr = [['pending','amber'],['accepted','teal'],['completed','green'],['cancelled','red']]
+  document.getElementById('ov-orders-tbl').innerHTML = Array.from({length:8},()=>{
+    const [st,sc] = ra(statArr)
+    return `<tr>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">#${rn(10000,99999)}</td>
+      <td>${ra(names)}</td>
+      <td style="color:var(--muted)">${ra(vendors)}</td>
+      <td style="font-family:var(--font-m)">£${(Math.random()*20+4).toFixed(2)}</td>
+      <td>${pill(st,sc)}</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${(Math.random()*8+.5).toFixed(2)}kg</td>
+    </tr>`
+  }).join('')
+
+  // Feed
+  const events = [
+    {t:'order', i:'🛒',txt:'New order — Jerk Chicken at Spice Route · £8.40',time:'2 min ago'},
+    {t:'signup',i:'👤',txt:'New customer — Leeds LS6',time:'5 min ago'},
+    {t:'livelit',i:'🔴',txt:'@chefaisha went LIVE — 8 orders placed',time:'12 min ago'},
+    {t:'payout',i:'💳',txt:'Payout £124.50 to The Curry House',time:'18 min ago'},
+    {t:'rider',i:'🛵',txt:'New rider approved — Hull HU1',time:'25 min ago'},
+    {t:'order',i:'🛒',txt:'Order completed — Green Bowl Hull',time:'34 min ago'},
+    {t:'signup',i:'🏪',txt:"New vendor — Mama's Kitchen approved",time:'1 hr ago'},
+    {t:'wallet',i:'💳',txt:'Carbon credits redeemed — £3.50 discount',time:'1 hr ago'},
+  ]
+  document.getElementById('ov-feed').innerHTML = events.map(e=>`
+    <div class="feed-item">
+      <div class="feed-dot" style="background:rgba(45,155,78,.1)">${e.i}</div>
+      <div class="feed-body">
+        <div class="feed-title">${e.txt}</div>
+        <div class="feed-time">${e.time}</div>
+      </div>
+    </div>`).join('')
+
+  // Top vendors
+  const vends = [
+    {n:'The Curry House',c:'Leeds LS1',r:'£1,240',o:84},
+    {n:'Jade Garden',c:'Hull HU1',r:'£980',o:71},
+    {n:'Green Bowl',c:'Leeds LS6',r:'£824',o:58},
+    {n:'Spice Route',c:'Leeds LS2',r:'£614',o:44},
+  ]
+  document.getElementById('ov-top-vendors').innerHTML = vends.map(v=>`
+    <div class="vrow">
+      <div class="vav">${v.n[0]}</div>
+      <div><div class="vname">${v.n}</div><div class="vsub">${v.c}</div></div>
+      <div class="vstat"><div class="vrev">${v.r}</div><div class="vord">${v.o} orders</div></div>
+    </div>`).join('')
+
+  // Bar chart
+  const months = [{m:'Nov',v:420},{m:'Dec',v:510},{m:'Jan',v:580},{m:'Feb',v:720},{m:'Mar',v:890},{m:'Apr',v:727}]
+  const max = Math.max(...months.map(m=>m.v))
+  document.getElementById('ov-chart').innerHTML = months.map((m,i)=>`
+    <div class="bar-col">
+      <div class="bar-val">${m.v}</div>
+      <div class="bar-fill ${i===months.length-1?'cur':''}" style="height:${Math.max(12,m.v/max*80)}px"></div>
+      <div class="bar-label">${m.m}</div>
+    </div>`).join('')
+}
+
+function buildVendors() {
+  const types = ['Restaurant','Home Cook','Caterer','Bakery']
+  const statArr = [['approved','green'],['approved','green'],['approved','green'],['pending','amber'],['suspended','red']]
+  document.getElementById('vendors-tbl').innerHTML = Array.from({length:12},()=>{
+    const [st,sc] = ra(statArr)
+    const co2 = (Math.random()*50+5).toFixed(1)
+    return `<tr>
+      <td><div style="font-weight:600">${ra(vendors)}</div><div style="font-size:11px;color:var(--muted)">${ra(names).toLowerCase().replace(' ','.')}@gmail.com</div></td>
+      <td style="color:var(--muted)">${ra(types)}</td>
+      <td style="color:var(--muted)">${ra(cities)}</td>
+      <td style="font-family:var(--font-m)">${rn(2,18)}</td>
+      <td style="font-family:var(--font-m)">${rn(12,180)}</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">£${(Math.random()*2000+200).toFixed(0)}</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${co2} kg</td>
+      <td>${pill(st,sc)}</td>
+    </tr>`
+  }).join('')
+}
+
+function buildOrders() {
+  const statArr = [['pending','amber'],['accepted','teal'],['completed','green'],['cancelled','red']]
+  document.getElementById('orders-tbl').innerHTML = Array.from({length:15},()=>{
+    const [st,sc] = ra(statArr)
+    const isDelivery = Math.random() > 0.5
+    const hasAffiliate = Math.random() > 0.6
+    return `<tr>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">#${rn(10000,99999)}</td>
+      <td>${ra(names)}</td>
+      <td style="color:var(--muted)">${ra(vendors)}</td>
+      <td style="font-family:var(--font-m)">${rn(1,3)}</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">£${(Math.random()*20+4).toFixed(2)}</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${(Math.random()*8+.5).toFixed(1)}kg</td>
+      <td>${pill(isDelivery?'Delivery':'Collection', isDelivery?'purple':'blue')}</td>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--green)">${hasAffiliate?'@'+ra(['chefaisha','leedsbbq','hullcooks']):'—'}</td>
+      <td>${pill(st,sc)}</td>
+      <td style="font-size:12px;color:var(--muted)">${rn(1,27)} Apr 2026</td>
+    </tr>`
+  }).join('')
+}
+
+function buildCustomers() {
+  const tiers = [['🥉 Bronze','#CD7F32'],['🥈 Silver','#C0C0C0'],['🥇 Gold','#FFD700'],['💎 Platinum','#A8D8EA']]
+  document.getElementById('customers-tbl').innerHTML = Array.from({length:12},()=>{
+    const name = ra(names)
+    const earned = (Math.random()*60).toFixed(1)
+    const tier = getTier(parseFloat(earned))
+    return `<tr>
+      <td style="font-weight:500">${name}</td>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">${name.replace(' ','.').toLowerCase()}@gmail.com</td>
+      <td style="color:var(--muted)">${ra(cities)}</td>
+      <td style="font-family:var(--font-m)">${rn(1,42)}</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">£${(Math.random()*300+10).toFixed(2)}</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${earned} kg</td>
+      <td style="font-family:var(--font-m);color:var(--purple)">${(earned*0.25).toFixed(2)} kg</td>
+      <td><span class="pill" style="background:${tier.color}22;color:${tier.color}">${tier.icon} ${tier.label}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${rn(1,28)} ${ra(['Jan','Feb','Mar','Apr'])} 2026</td>
+    </tr>`
+  }).join('')
+}
+
+function buildRiders() {
+  setText('r-total', rn(12,18))
+  setText('r-online', rn(3,8))
+  setText('r-today', rn(20,40))
+  setText('r-rating', (4.2+Math.random()*.7).toFixed(1))
+
+  const vehicles = ['⚡ Ebike','🚲 Bicycle','🏍️ Moped']
+  const riderStatArr = [['approved','green'],['approved','green'],['approved','green'],['pending','amber']]
+  const types = ['Employed','Independent']
+  document.getElementById('riders-tbl').innerHTML = Array.from({length:10},()=>{
+    const [st,sc] = ra(riderStatArr)
+    const deliveries = rn(5,120)
+    const earnings = (deliveries * (1.8+Math.random()*.8)).toFixed(2)
+    const carbon = (deliveries * 0.03).toFixed(2)
+    return `<tr>
+      <td><div style="font-weight:600">${ra(names)}</div><div style="font-size:11px;color:var(--muted)">${ra(cities)}</div></td>
+      <td>${ra(vehicles)}</td>
+      <td style="color:var(--muted)">${ra(['Leeds','Hull'])}</td>
+      <td>${pill(st,sc)}</td>
+      <td style="font-family:var(--font-m)">${deliveries}</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">£${earnings}</td>
+      <td style="font-family:var(--font-m);color:var(--green)">${carbon} kg</td>
+      <td style="color:var(--amber)">${(4+Math.random()).toFixed(1)} ⭐</td>
+      <td style="color:var(--muted)">${ra(types)}</td>
+    </tr>`
+  }).join('')
+}
+
+function buildDeliveries() {
+  setText('d-total', rn(300,500))
+  setText('d-active', rn(2,8))
+  setText('d-dist', (2.1+Math.random()).toFixed(1))
+  setText('d-fee', '£'+(2.1+Math.random()*.5).toFixed(2))
+
+  const dStatArr = [['rider_assigned','amber'],['picked_up','teal'],['delivered','green'],['failed','red']]
+  document.getElementById('deliveries-tbl').innerHTML = Array.from({length:12},()=>{
+    const [st,sc] = ra(dStatArr)
+    const dist = (1+Math.random()*4).toFixed(1)
+    const fee  = (1.5 + dist*0.3).toFixed(2)
+    const pay  = (fee*0.8).toFixed(2)
+    const co2net = (Math.random()*5+0.5).toFixed(2)
+    return `<tr>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">#${rn(10000,99999)}</td>
+      <td style="font-weight:500">${ra(names)}</td>
+      <td style="color:var(--muted)">${ra(vendors)}</td>
+      <td style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis">${ra(cities)}</td>
+      <td style="font-family:var(--font-m)">${dist} mi</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">£${fee}</td>
+      <td style="font-family:var(--font-m);color:var(--purple)">£${pay}</td>
+      <td style="font-family:var(--font-m);color:var(--green)">${co2net} kg</td>
+      <td>${pill(st.replace('_',' '),sc)}</td>
+    </tr>`
+  }).join('')
+}
+
+function buildLivelit() {
+  const creators = [
+    {n:'Chef Aisha',h:'@chefaisha',st:'live',lives:14,orders:84,comm:'£62.40'},
+    {n:'Leeds BBQ',h:'@leedsbbq',st:'scheduled',lives:8,orders:51,comm:'£38.20'},
+    {n:'Hull Cooks',h:'@hullcooks',st:'active',lives:11,orders:67,comm:'£49.80'},
+    {n:'Spice Queen',h:'@spicequeen',st:'active',lives:6,orders:38,comm:'£28.60'},
+    {n:'Pastry Palace',h:'@pastrypalace',st:'pending',lives:0,orders:0,comm:'£0.00'},
+  ]
+  const sc = {live:'red',scheduled:'amber',active:'green',pending:'gray'}
+  document.getElementById('livelit-tbl').innerHTML = creators.map(c=>`<tr>
+    <td style="font-weight:600">${c.n}</td>
+    <td style="font-family:var(--font-m);color:var(--teal)">${c.h}</td>
+    <td>${pill(c.st,sc[c.st])}</td>
+    <td style="font-family:var(--font-m)">${c.lives}</td>
+    <td style="font-family:var(--font-m)">${c.orders}</td>
+    <td style="font-family:var(--font-m);color:var(--amber)">${c.comm}</td>
+    <td><a href="https://yumcycle.com/live/${c.h.slice(1)}" style="font-size:12px;color:var(--green);text-decoration:none" target="_blank">yumcycle.com/live/…</a></td>
+  </tr>`).join('')
+}
+
+function buildOutreach() {
+  const creators=[
+    {n:'@foodieleeds',pl:'TikTok',sc:87,loc:'Leeds LS6',flw:'14.2K',st:'pending'},
+    {n:'@hullhomecook',pl:'TikTok',sc:82,loc:'Hull HU1',flw:'8.9K',st:'pending'},
+    {n:'@yorkshireeats',pl:'Instagram',sc:74,loc:'Leeds',flw:'22.1K',st:'pending'},
+    {n:'@curryqueen_ld',pl:'TikTok',sc:71,loc:'Leeds LS2',flw:'6.4K',st:'sent'},
+    {n:'@pieladyhull',pl:'TikTok',sc:68,loc:'Hull HU3',flw:'4.1K',st:'replied'},
+  ]
+  const sc={pending:'amber',sent:'teal',replied:'green'}
+  document.getElementById('outreach-tbl').innerHTML = creators.map(c=>`<tr>
+    <td style="font-family:var(--font-m);color:var(--teal)">${c.n}</td>
+    <td>${c.pl}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:48px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden"><div style="width:${c.sc}%;height:100%;background:${c.sc>=80?'var(--green)':c.sc>=65?'var(--amber)':'var(--red)'}"></div></div>
+        <span style="font-family:var(--font-m);font-size:12px">${c.sc}</span>
+      </div>
+    </td>
+    <td style="color:var(--muted)">${c.loc}</td>
+    <td style="font-family:var(--font-m)">${c.flw}</td>
+    <td>${pill(c.st,sc[c.st])}</td>
+    <td>${c.st==='pending'?'<button class="btn btn-p" style="padding:5px 10px;font-size:11px">Approve &amp; Send</button>':'<button class="btn btn-g" style="padding:5px 10px;font-size:11px">View</button>'}</td>
+  </tr>`).join('')
+}
+
+function buildWaitlist() {
+  const sources = ['yumcycle.com','TikTok','Instagram','Word of mouth','Google']
+  document.getElementById('waitlist-tbl').innerHTML = Array.from({length:10},()=>{
+    const name = ra(names)
+    const type = Math.random()>.15?'customer':'vendor'
+    setText('w-total', rn(800,900))
+    setText('w-vendors', rn(110,140))
+    setText('w-customers', rn(680,750))
+    return `<tr>
+      <td style="font-weight:500">${name}</td>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">${name.replace(' ','.').toLowerCase()}@gmail.com</td>
+      <td>${pill(type,type==='vendor'?'amber':'teal')}</td>
+      <td style="color:var(--muted)">${ra(cities)}</td>
+      <td style="color:var(--muted)">${ra(sources)}</td>
+      <td style="font-size:12px;color:var(--muted)">${rn(1,28)} Apr 2026</td>
+    </tr>`
+  }).join('')
+}
+
+function buildWallets() {
+  setText('wlt-count', rn(250,320))
+  setText('wlt-balance', (Math.random()*200+50).toFixed(1)+' kg')
+  setText('wlt-earned', (Math.random()*500+200).toFixed(1)+' kg')
+  setText('wlt-redeemed', (Math.random()*80+20).toFixed(1)+' kg')
+
+  document.getElementById('wallets-tbl').innerHTML = Array.from({length:12},()=>{
+    const earned = (Math.random()*60).toFixed(2)
+    const tier = getTier(parseFloat(earned))
+    const balance  = (earned*0.6).toFixed(2)
+    const redeemed = (earned*0.3).toFixed(2)
+    const donated  = (earned*0.1).toFixed(2)
+    const name = ra(names)
+    return `<tr>
+      <td style="font-weight:500">${name}</td>
+      <td style="font-family:var(--font-m);color:var(--purple)">${balance} kg</td>
+      <td style="font-family:var(--font-m);color:var(--green)">${earned} kg</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">${redeemed} kg</td>
+      <td style="font-family:var(--font-m);color:#4ade80">${donated} kg</td>
+      <td style="font-family:var(--font-m)">${rn(3,40)}</td>
+      <td><span class="pill" style="background:${tier.color}22;color:${tier.color}">${tier.icon} ${tier.label}</span></td>
+    </tr>`
+  }).join('')
+}
+
+function buildCompliance() {
+  setText('cp-kg', rn(2000,2500)+' kg')
+  const months = ['November 2025','December 2025','January 2026','February 2026','March 2026','April 2026']
+  document.getElementById('compliance-tbl').innerHTML = months.map((m,i)=>{
+    const kg = rn(180,420)
+    return `<tr>
+      <td style="font-weight:500">${m}</td>
+      <td style="font-family:var(--font-m)">${kg} kg</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${(kg*2.2).toFixed(0)} kg</td>
+      <td style="font-family:var(--font-m)">${rn(80,200)}</td>
+      <td style="font-family:var(--font-m)">${rn(8,24)}</td>
+      <td>${pill(i<5?'complete':'in progress',i<5?'green':'amber')}</td>
+    </tr>`
+  }).join('')
+}
+
+// ── Auto-refresh feed ─────────────────────────────────────────────
+const feedEvents = [
+  '🛒 New order — £8.40 · Curry House Leeds',
+  '👤 New customer signup — Hull HU1',
+  '🔴 @chefaisha mentioned link in live',
+  '🛵 Rider collected from Green Bowl',
+  '🌿 CO₂ credited to 3 wallets',
+  '💳 Carbon credits redeemed — £3.50 discount',
+]
+setInterval(() => {
+  const feed = document.getElementById('ov-feed')
+  if (!feed) return
+  const item = document.createElement('div')
+  item.className = 'feed-item'
+  item.style.opacity = '0'
+  item.style.transition = 'opacity .4s'
+  item.innerHTML = `
+    <div class="feed-dot" style="background:rgba(45,155,78,.1)">⚡</div>
+    <div class="feed-body">
+      <div class="feed-title">${ra(feedEvents)}</div>
+      <div class="feed-time">just now</div>
+    </div>`
+  feed.insertBefore(item, feed.firstChild)
+  requestAnimationFrame(() => item.style.opacity = '1')
+  if (feed.children.length > 10) feed.removeChild(feed.lastChild)
+}, 8000)
+
+// ── Init ──────────────────────────────────────────────────────────
+fetchAll()
+</script>
+</body>
+</html>
