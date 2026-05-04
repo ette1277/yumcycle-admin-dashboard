@@ -255,18 +255,24 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 
 <!-- ═══════════════ VENDORS ═══════════════ -->
 <div class="page" id="p-vendors">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+    <div class="stat"><div class="stat-label">Total Vendors</div><div class="stat-val" id="v-total" style="color:var(--green)">--</div><div class="stat-sub">registered</div></div>
+    <div class="stat"><div class="stat-label">Approved</div><div class="stat-val" id="v-approved" style="color:var(--teal)">--</div><div class="stat-sub">active</div></div>
+    <div class="stat"><div class="stat-label">Pending Review</div><div class="stat-val" id="v-pending" style="color:var(--amber)">--</div><div class="stat-sub">awaiting approval</div></div>
+    <div class="stat"><div class="stat-label">Rejected</div><div class="stat-val" id="v-rejected" style="color:var(--red)">--</div><div class="stat-sub">not approved</div></div>
+  </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <div class="tabs">
-      <div class="tab active" onclick="ftab(this)">All</div>
-      <div class="tab" onclick="ftab(this)">Approved</div>
-      <div class="tab" onclick="ftab(this)">Pending</div>
-      <div class="tab" onclick="ftab(this)">Suspended</div>
+    <div class="tabs" id="vendor-tabs">
+      <div class="tab active" onclick="filterVendors('all',this)">All</div>
+      <div class="tab" onclick="filterVendors('approved',this)">Approved</div>
+      <div class="tab" onclick="filterVendors('pending',this)">Pending</div>
+      <div class="tab" onclick="filterVendors('rejected',this)">Rejected</div>
     </div>
-    <button class="btn btn-p">+ Invite Vendor</button>
+    <button class="btn btn-g" onclick="buildVendors()">↻ Refresh</button>
   </div>
   <div class="panel">
-    <div class="panel-hd"><div class="panel-title">All Vendors</div><div class="search"><span>🔍</span><input placeholder="Search vendors…" /></div></div>
-    <div class="tw"><table><thead><tr><th>Vendor</th><th>Type</th><th>City</th><th>Listings</th><th>Orders</th><th>Revenue</th><th>CO₂ Saved</th><th>Status</th></tr></thead><tbody id="vendors-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+    <div class="panel-hd"><div class="panel-title">Vendor Accounts</div><span id="vendor-count" style="font-size:12px;color:var(--muted)"></span></div>
+    <div class="tw"><table><thead><tr><th>Vendor</th><th>Type</th><th>Business Name</th><th>City</th><th>Status</th><th>Stripe</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="vendors-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -715,23 +721,106 @@ function buildOverview() {
     </div>`).join('')
 }
 
-function buildVendors() {
-  const types = ['Restaurant','Home Cook','Caterer','Bakery']
-  const statArr = [['approved','green'],['approved','green'],['approved','green'],['pending','amber'],['suspended','red']]
-  document.getElementById('vendors-tbl').innerHTML = Array.from({length:12},()=>{
-    const [st,sc] = ra(statArr)
-    const co2 = (Math.random()*50+5).toFixed(1)
-    return `<tr>
-      <td><div style="font-weight:600">${ra(vendors)}</div><div style="font-size:11px;color:var(--muted)">${ra(names).toLowerCase().replace(' ','.')}@gmail.com</div></td>
-      <td style="color:var(--muted)">${ra(types)}</td>
-      <td style="color:var(--muted)">${ra(cities)}</td>
-      <td style="font-family:var(--font-m)">${rn(2,18)}</td>
-      <td style="font-family:var(--font-m)">${rn(12,180)}</td>
-      <td style="font-family:var(--font-m);color:var(--amber)">£${(Math.random()*2000+200).toFixed(0)}</td>
-      <td style="font-family:var(--font-m);color:var(--teal)">${co2} kg</td>
-      <td>${pill(st,sc)}</td>
+let allVendorsCache = []
+let currentVendorFilter = 'all'
+
+async function buildVendors() {
+  document.getElementById('vendors-tbl').innerHTML = '<tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/admin/sellers`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error('auth')
+    const d = await r.json()
+    allVendorsCache = d.data || []
+    renderVendorsTable(allVendorsCache, currentVendorFilter)
+  } catch {
+    document.getElementById('vendors-tbl').innerHTML = '<tr><td colspan="8" class="loading" style="color:var(--red)">Failed to load vendors. Check your admin key.</td></tr>'
+  }
+}
+
+function filterVendors(status, tabEl) {
+  currentVendorFilter = status
+  document.querySelectorAll('#vendor-tabs .tab').forEach(t => t.classList.remove('active'))
+  if (tabEl) tabEl.classList.add('active')
+  renderVendorsTable(allVendorsCache, status)
+}
+
+function renderVendorsTable(sellers, filter) {
+  const total    = sellers.length
+  const approved = sellers.filter(s => s.sellerProfile?.approvalStatus === 'approved').length
+  const pending  = sellers.filter(s => s.sellerProfile?.approvalStatus === 'pending').length
+  const rejected = sellers.filter(s => s.sellerProfile?.approvalStatus === 'rejected').length
+
+  setText('v-total',    total)
+  setText('v-approved', approved)
+  setText('v-pending',  pending)
+  setText('v-rejected', rejected)
+
+  const filtered = filter === 'all' ? sellers : sellers.filter(s => s.sellerProfile?.approvalStatus === filter)
+  const countEl = document.getElementById('vendor-count')
+  if (countEl) countEl.textContent = `${filtered.length} vendor${filtered.length !== 1 ? 's' : ''}`
+
+  if (filtered.length === 0) {
+    document.getElementById('vendors-tbl').innerHTML = `<tr><td colspan="8" class="loading" style="color:var(--muted)">No vendors${filter !== 'all' ? ' with status "'+filter+'"' : ''}</td></tr>`
+    return
+  }
+
+  const statusColor = { approved: 'green', pending: 'amber', rejected: 'red' }
+
+  document.getElementById('vendors-tbl').innerHTML = filtered.map(s => {
+    const sp      = s.sellerProfile || {}
+    const profile = sp.type === 'individual' ? sp.individual : sp.company
+    const bizName = profile?.businessName || '—'
+    const city    = profile?.address?.city || profile?.address || '—'
+    const st      = sp.approvalStatus || 'pending'
+    const sc      = statusColor[st] || 'gray'
+    const stripe  = sp.stripe_charges_enabled ? pill('Ready','green') : pill('Not set','gray')
+    const joined  = new Date(s.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    const typeLabel = sp.type === 'individual' ? '🧑 Individual' : '🏢 Company'
+
+    let actions = ''
+    if (st === 'pending') {
+      actions = `<button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="doUpdateSellerStatus('${s._id}','approved',this)">✓ Approve</button>
+                 <button class="btn btn-g" style="padding:5px 12px;font-size:11px;color:var(--red);border-color:rgba(239,68,68,.3);margin-left:4px" onclick="doUpdateSellerStatus('${s._id}','rejected',this)">✗ Reject</button>`
+    } else if (st === 'approved') {
+      actions = `<button class="btn btn-g" style="padding:5px 12px;font-size:11px;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="doUpdateSellerStatus('${s._id}','rejected',this)">Revoke</button>`
+    } else {
+      actions = `<button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="doUpdateSellerStatus('${s._id}','approved',this)">Reinstate</button>
+                 <button class="btn btn-g" style="padding:5px 12px;font-size:11px;margin-left:4px" onclick="doUpdateSellerStatus('${s._id}','pending',this)">Reset</button>`
+    }
+
+    return `<tr id="vendor-row-${s._id}">
+      <td><div style="font-weight:600">${s.firstName || ''} ${s.lastName || ''}</div><div style="font-size:11px;color:var(--muted)">${s.email}</div></td>
+      <td style="color:var(--muted);font-size:12px">${typeLabel}</td>
+      <td style="font-weight:500">${bizName}</td>
+      <td style="color:var(--muted)">${city}</td>
+      <td>${pill(st, sc)}</td>
+      <td>${stripe}</td>
+      <td style="font-size:12px;color:var(--muted)">${joined}</td>
+      <td id="vendor-action-${s._id}">${actions}</td>
     </tr>`
   }).join('')
+}
+
+async function doUpdateSellerStatus(sellerId, status, btnEl) {
+  const orig = btnEl.textContent
+  btnEl.disabled = true
+  btnEl.textContent = '…'
+  try {
+    const r = await fetch(`${API}/admin/sellers/${sellerId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ status })
+    })
+    if (!r.ok) throw new Error()
+    const updated = await r.json()
+    const idx = allVendorsCache.findIndex(s => s._id === sellerId)
+    if (idx !== -1) allVendorsCache[idx] = updated.data
+    renderVendorsTable(allVendorsCache, currentVendorFilter)
+  } catch {
+    btnEl.disabled = false
+    btnEl.textContent = orig
+    alert('Failed to update vendor status. Please try again.')
+  }
 }
 
 function buildOrders() {
@@ -1061,11 +1150,12 @@ if (adminKey) {
   document.getElementById('login-overlay').style.display = 'flex'
 }
 
-// Refresh riders when navigating to that tab
+// Refresh riders and vendors when navigating to those tabs
 const _go = go
 go = function(id, navEl) {
   _go(id, navEl)
   if (id === 'riders') buildRiders()
+  if (id === 'vendors') buildVendors()
 }
 </script>
 </body>
