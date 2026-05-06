@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YumCycle Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2D9B4E;--green-d:#1a5c2e;--green-l:rgba(45,155,78,0.12);
+  --amber:#F5A623;--teal:#1ABCB0;--red:#EF4444;--purple:#8B5CF6;--blue:#3B82F6;
+  --ink:#0D1117;--ink2:#161b22;--ink3:#21262d;
+  --border:rgba(255,255,255,0.07);--card:rgba(255,255,255,0.04);
+  --text:rgba(255,255,255,0.85);--muted:rgba(255,255,255,0.4);--dim:rgba(255,255,255,0.2);
+  --font-h:'Syne',sans-serif;--font-m:'DM Mono',monospace;--font-b:'Inter',sans-serif;
+}
+body{font-family:var(--font-b);background:var(--ink);color:var(--text);min-height:100vh;display:flex}
+
+/* ── Sidebar ── */
+.sidebar{width:220px;min-width:220px;background:var(--ink2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0}
+.logo-txt{font-family:var(--font-h);font-size:18px;font-weight:800}
+.logo-txt span{color:var(--green)}
+.nav{padding:8px 0;flex:1}
+.nav-sec{padding:14px 16px 4px;font-size:10px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--card)}
+.nav-item.active{color:var(--green);border-left-color:var(--green);background:var(--green-l)}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+.sidebar-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--dim);line-height:1.7}
+
+/* ── Main ── */
+.main{flex:1;overflow-x:hidden;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;background:rgba(13,17,23,0.92);backdrop-filter:blur(12px)}
+.page-title{font-family:var(--font-h);font-size:19px;font-weight:700}
+.topbar-r{display:flex;align-items:center;gap:10px}
+.status-pill{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--green-l);color:#4ade80;border:1px solid rgba(45,155,78,0.3);cursor:pointer}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+/* ── Content ── */
+.content{padding:24px 28px;flex:1}
+.page{display:none}.page.active{display:block}
+
+/* ── Stats grid ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;transition:border-color .2s;cursor:default}
+.stat:hover{border-color:rgba(255,255,255,0.12)}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.stat-val{font-family:var(--font-m);font-size:28px;font-weight:500;line-height:1}
+.stat-sub{font-size:12px;margin-top:8px;color:#4ade80}
+
+/* ── Panel ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:var(--font-h);font-size:14px;font-weight:700}
+.panel-act{font-size:12px;color:var(--green);cursor:pointer;background:none;border:none;font-family:inherit}
+
+/* ── Table ── */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
+
+/* ── Pills ── */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.p-green{background:var(--green-l);color:#4ade80}
+.p-amber{background:rgba(245,166,35,.15);color:#fbbf24}
+.p-red{background:rgba(239,68,68,.15);color:#f87171}
+.p-teal{background:rgba(26,188,176,.15);color:#2dd4bf}
+.p-purple{background:rgba(139,92,246,.15);color:#a78bfa}
+.p-blue{background:rgba(59,130,246,.15);color:#60a5fa}
+.p-gray{background:rgba(255,255,255,.06);color:var(--muted)}
+
+/* ── 2-col ── */
+.two{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-bottom:20px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+
+/* ── Feed ── */
+.feed-item{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);align-items:flex-start}
+.feed-item:last-child{border-bottom:none}
+.feed-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.feed-body{flex:1}
+.feed-title{font-size:13px;font-weight:500}
+.feed-time{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ── Carbon chart ── */
+.bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding:16px 20px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bar-val{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;position:relative;overflow:hidden}
+.bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,var(--green),rgba(45,155,78,.35))}
+.bar-fill.cur::after{background:linear-gradient(180deg,#4ade80,var(--green))}
+.bar-label{font-size:10px;color:var(--muted)}
+
+/* ── Vendor rows ── */
+.vrow{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.vrow:last-child{border-bottom:none}
+.vav{width:36px;height:36px;border-radius:10px;background:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.vname{font-size:13px;font-weight:600}
+.vsub{font-size:11px;color:var(--muted);margin-top:2px}
+.vstat{margin-left:auto;text-align:right}
+.vrev{font-family:var(--font-m);font-size:13px;font-weight:500}
+.vord{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);border:1px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--green);background:var(--green-l);border-color:rgba(45,155,78,.25)}
+
+/* ── Search ── */
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 14px}
+.search input{background:none;border:none;outline:none;font-size:13px;color:var(--text);font-family:inherit;width:200px}
+.search input::placeholder{color:var(--muted)}
+
+/* ── Btn ── */
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-p{background:var(--green);color:#fff}.btn-p:hover{background:#38b55e}
+.btn-g{background:var(--card);color:var(--text);border:1px solid var(--border)}.btn-g:hover{background:rgba(255,255,255,.06)}
+
+/* ── Rider map card ── */
+.rider-card{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.rider-card:last-child{border-bottom:none}
+.rider-av{width:40px;height:40px;border-radius:50%;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;color:#a78bfa}
+.rider-name{font-size:14px;font-weight:600}
+.rider-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.rider-stat{margin-left:auto;text-align:right}
+
+/* ── Wallet card ── */
+.wallet-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.wallet-row:last-child{border-bottom:none}
+.wallet-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+.tier-bar{flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.tier-fill{height:100%;border-radius:3px}
+
+/* ── Carbon progress ── */
+.carbon-hero{background:linear-gradient(135deg,#0f2d13,#1a4a2e);border-radius:14px;padding:22px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap}
+.carbon-big{font-family:var(--font-m);font-size:42px;font-weight:500;color:#4ade80;line-height:1}
+
+/* ── Loading ── */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.spin{display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+
+/* ── Admin login overlay ── */
+#login-overlay{position:fixed;inset:0;background:var(--ink);z-index:9999;display:none;align-items:center;justify-content:center}
+.login-box{background:var(--ink2);border:1px solid var(--border);border-radius:20px;padding:36px;width:360px}
+.login-box input{width:100%;background:var(--ink3);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-size:14px;color:var(--text);font-family:inherit;outline:none;margin-bottom:12px}
+.login-box input:focus{border-color:var(--green)}
+.login-submit{width:100%;background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.login-submit:hover{background:#38b55e}
+</style>
+</head>
+<body>
+
+<!-- ── Admin login overlay ── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
+      <div style="font-family:var(--font-h);font-size:20px;font-weight:800">Yum<span style="color:var(--green)">Cycle</span> Admin</div>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Enter your admin secret key to continue</div>
+    <input id="admin-key-input" type="password" placeholder="Admin secret key…" onkeydown="if(event.key==='Enter')doAdminLogin()" />
+    <div id="login-error" style="font-size:12px;color:var(--red);margin-bottom:12px;display:none">Invalid key — please try again.</div>
+    <button class="login-submit" onclick="doAdminLogin()">Sign in →</button>
+    <div style="margin-top:16px;font-size:11px;color:var(--dim);line-height:1.6">Set <code style="background:var(--ink3);padding:1px 5px;border-radius:4px">ADMIN_SECRET_KEY</code> in your Render environment variables, then enter the same value here.</div>
+  </div>
+</div>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <div class="logo-txt">Yum<span>Cycle</span></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Main</div>
+    <div class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">📊</span>Overview</div>
+    <div class="nav-item" onclick="go('vendors',this)"><span class="nav-icon">🏪</span>Vendors</div>
+    <div class="nav-item" onclick="go('orders',this)"><span class="nav-icon">📦</span>Orders</div>
+    <div class="nav-item" onclick="go('customers',this)"><span class="nav-icon">👥</span>Customers</div>
+    <div class="nav-item" onclick="go('riders',this)"><span class="nav-icon">🛵</span>Riders</div>
+    <div class="nav-item" onclick="go('deliveries',this)"><span class="nav-icon">🗺️</span>Deliveries</div>
+    <div class="nav-sec">Growth</div>
+    <div class="nav-item" onclick="go('livelit',this)"><span class="nav-icon">🔴</span>LiveLit House</div>
+    <div class="nav-item" onclick="go('outreach',this)"><span class="nav-icon">📣</span>Outreach</div>
+    <div class="nav-item" onclick="go('waitlist',this)"><span class="nav-icon">⏳</span>Waitlist</div>
+    <div class="nav-sec">Sustainability</div>
+    <div class="nav-item" onclick="go('carbon',this)"><span class="nav-icon">🌿</span>Carbon</div>
+    <div class="nav-item" onclick="go('wallets',this)"><span class="nav-icon">💳</span>Wallets</div>
+    <div class="nav-item" onclick="go('leaderboard',this)"><span class="nav-icon">🏆</span>Leaderboard</div>
+    <div class="nav-item" onclick="go('compliance',this)"><span class="nav-icon">📋</span>Compliance</div>
+    <div class="nav-sec">System</div>
+    <div class="nav-item" onclick="go('analytics',this)"><span class="nav-icon">📈</span>Analytics</div>
+    <div class="nav-item" onclick="go('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
+    <div class="nav-sec">Website</div>
+    <div class="nav-item" onclick="go('website',this)"><span class="nav-icon">🌐</span>Website</div>
+  </nav>
+  <div class="sidebar-foot">
+    admin.yumcycle.com<br>
+    <span style="opacity:.5">Grabnex Ecommerce Ltd<br>Co. No. 15288512</span>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="ptitle">Overview</div>
+    <div class="topbar-r">
+      <div class="search"><span>🔍</span><input placeholder="Search..." /></div>
+      <div class="status-pill" onclick="fetchAll()">🟢 Live · Refresh</div>
+      <div class="avatar" title="Sign out" onclick="adminLogout()" style="cursor:pointer">A</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+<!-- ═══════════════ OVERVIEW ═══════════════ -->
+<div class="page active" id="p-overview">
+  <div class="stats" id="ov-stats">
+    <div class="stat"><div class="stat-label">Total Orders</div><div class="stat-val" id="ov-orders" style="color:var(--green)">--</div><div class="stat-sub" id="ov-orders-sub">loading…</div></div>
+    <div class="stat"><div class="stat-label">Active Vendors</div><div class="stat-val" id="ov-vendors">--</div><div class="stat-sub">Leeds &amp; Hull</div></div>
+    <div class="stat"><div class="stat-label">Revenue (GBP)</div><div class="stat-val" id="ov-revenue" style="color:var(--amber)">--</div><div class="stat-sub" id="ov-rev-sub">loading…</div></div>
+    <div class="stat"><div class="stat-label">CO₂ Saved (kg)</div><div class="stat-val" id="ov-co2" style="color:var(--teal)">--</div><div class="stat-sub">WRAP UK 2024</div></div>
+    <div class="stat"><div class="stat-label">Active Riders</div><div class="stat-val" id="ov-riders" style="color:var(--purple)">--</div><div class="stat-sub">Online now</div></div>
+    <div class="stat"><div class="stat-label">LiveLit Creators</div><div class="stat-val" id="ov-creators" style="color:var(--red)">--</div><div class="stat-sub">In network</div></div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">Recent Orders</div><button class="panel-act" onclick="go('orders',null)">View all →</button></div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Customer</th><th>Vendor</th><th>Amount</th><th>Status</th><th>CO₂</th></tr></thead><tbody id="ov-orders-tbl"><tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">Live Activity</div><span style="font-size:11px;color:var(--muted)">Auto-refresh 8s</span></div>
+      <div id="ov-feed"></div>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">Top Vendors</div><button class="panel-act" onclick="go('vendors',null)">View all →</button></div>
+      <div id="ov-top-vendors"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd"><div class="panel-title">CO₂ Saved — Monthly (kg)</div><span id="ov-co2-total" style="font-family:var(--font-m);font-size:12px;color:var(--teal)">--</span></div>
+      <div class="bars" id="ov-chart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VENDORS ═══════════════ -->
+<div class="page" id="p-vendors">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+    <div class="stat"><div class="stat-label">Total Vendors</div><div class="stat-val" id="v-total" style="color:var(--green)">--</div><div class="stat-sub">registered</div></div>
+    <div class="stat"><div class="stat-label">Approved</div><div class="stat-val" id="v-approved" style="color:var(--teal)">--</div><div class="stat-sub">active</div></div>
+    <div class="stat"><div class="stat-label">Pending Review</div><div class="stat-val" id="v-pending" style="color:var(--amber)">--</div><div class="stat-sub">awaiting approval</div></div>
+    <div class="stat"><div class="stat-label">Rejected</div><div class="stat-val" id="v-rejected" style="color:var(--red)">--</div><div class="stat-sub">not approved</div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="tabs" id="vendor-tabs">
+      <div class="tab active" onclick="filterVendors('all',this)">All</div>
+      <div class="tab" onclick="filterVendors('approved',this)">Approved</div>
+      <div class="tab" onclick="filterVendors('pending',this)">Pending</div>
+      <div class="tab" onclick="filterVendors('rejected',this)">Rejected</div>
+    </div>
+    <button class="btn btn-g" onclick="buildVendors()">↻ Refresh</button>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Vendor Accounts</div><span id="vendor-count" style="font-size:12px;color:var(--muted)"></span></div>
+    <div class="tw"><table><thead><tr><th>Vendor</th><th>Type</th><th>Business Name</th><th>City</th><th>Status</th><th>Stripe</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="vendors-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ORDERS ═══════════════ -->
+<div class="page" id="p-orders">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="tabs">
+      <div class="tab active" onclick="ftab(this)">All Orders</div>
+      <div class="tab" onclick="ftab(this)">Pending</div>
+      <div class="tab" onclick="ftab(this)">Accepted</div>
+      <div class="tab" onclick="ftab(this)">Completed</div>
+      <div class="tab" onclick="ftab(this)">Cancelled</div>
+    </div>
+    <button class="btn btn-g">Export CSV</button>
+  </div>
+  <div class="panel">
+    <div class="tw"><table><thead><tr><th>Order ID</th><th>Customer</th><th>Vendor</th><th>Items</th><th>Total</th><th>CO₂</th><th>Type</th><th>Affiliate</th><th>Status</th><th>Date</th></tr></thead><tbody id="orders-tbl"><tr><td colspan="10" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ CUSTOMERS ═══════════════ -->
+<div class="page" id="p-customers">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="panel-title">All Customers</div>
+    <button class="btn btn-g">Export CSV</button>
+  </div>
+  <div class="panel">
+    <div class="tw"><table><thead><tr><th>Customer</th><th>Email</th><th>City</th><th>Orders</th><th>Total Spend</th><th>CO₂ Saved</th><th>Wallet (kg)</th><th>Tier</th><th>Joined</th></tr></thead><tbody id="customers-tbl"><tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ RIDERS ═══════════════ -->
+<div class="page" id="p-riders">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Riders</div><div class="stat-val" id="r-total" style="color:var(--purple)">--</div><div class="stat-sub">registered</div></div>
+    <div class="stat"><div class="stat-label">Online Now</div><div class="stat-val" id="r-online" style="color:var(--green)">--</div><div class="stat-sub">available</div></div>
+    <div class="stat"><div class="stat-label">Deliveries Today</div><div class="stat-val" id="r-today" style="color:var(--amber)">--</div><div class="stat-sub">completed</div></div>
+    <div class="stat"><div class="stat-label">Avg Rating</div><div class="stat-val" id="r-rating" style="color:var(--teal)">--</div><div class="stat-sub">from customers</div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="tabs" id="rider-tabs">
+      <div class="tab active" onclick="filterRiders('all',this)">All</div>
+      <div class="tab" onclick="filterRiders('pending',this)">Pending</div>
+      <div class="tab" onclick="filterRiders('approved',this)">Approved</div>
+      <div class="tab" onclick="filterRiders('suspended',this)">Suspended</div>
+    </div>
+    <button class="btn btn-g" onclick="buildRiders()">↻ Refresh</button>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Rider Network</div><span id="rider-count" style="font-size:12px;color:var(--muted)"></span></div>
+    <div class="tw"><table><thead><tr><th>Rider</th><th>Vehicle</th><th>City</th><th>Status</th><th>Deliveries</th><th>Earnings</th><th>Type</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="riders-tbl"><tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+  <!-- Fee breakdown -->
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Delivery Fee Structure</div></div>
+    <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">BASE FEE</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--green)">£1.50</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">every delivery</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">PER MILE</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--amber)">£0.30</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">distance rate</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">RIDER SHARE</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--purple)">80%</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">of delivery fee</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">MAX RADIUS</div>
+        <div style="font-family:var(--font-m);font-size:28px;color:var(--teal)">5 mi</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">delivery zone</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DELIVERIES ═══════════════ -->
+<div class="page" id="p-deliveries">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Deliveries</div><div class="stat-val" id="d-total" style="color:var(--purple)">--</div></div>
+    <div class="stat"><div class="stat-label">Active Now</div><div class="stat-val" id="d-active" style="color:var(--green)">--</div><div class="stat-sub">in progress</div></div>
+    <div class="stat"><div class="stat-label">Avg Distance</div><div class="stat-val" id="d-dist" style="color:var(--amber)">--</div><div class="stat-sub">miles</div></div>
+    <div class="stat"><div class="stat-label">Avg Fee</div><div class="stat-val" id="d-fee" style="color:var(--teal)">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd">
+      <div class="panel-title">Recent Deliveries</div>
+      <div class="tabs" style="margin:0">
+        <div class="tab active" onclick="ftab(this)">All</div>
+        <div class="tab" onclick="ftab(this)">In Progress</div>
+        <div class="tab" onclick="ftab(this)">Delivered</div>
+        <div class="tab" onclick="ftab(this)">Failed</div>
+      </div>
+    </div>
+    <div class="tw"><table><thead><tr><th>ID</th><th>Rider</th><th>Pickup</th><th>Deliver to</th><th>Distance</th><th>Fee</th><th>Rider Payout</th><th>CO₂ Net</th><th>Status</th></tr></thead><tbody id="deliveries-tbl"><tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ LIVELIT ═══════════════ -->
+<div class="page" id="p-livelit">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Active Creators</div><div class="stat-val" style="color:var(--red)">12</div><div class="stat-sub">↑ 3 this week</div></div>
+    <div class="stat"><div class="stat-label">Lives Today</div><div class="stat-val">3</div><div class="stat-sub">2 scheduled</div></div>
+    <div class="stat"><div class="stat-label">Live Orders</div><div class="stat-val" style="color:var(--green)">84</div><div class="stat-sub">↑ 31% vs last week</div></div>
+    <div class="stat"><div class="stat-label">Affiliate Revenue</div><div class="stat-val" style="color:var(--amber)">£621</div><div class="stat-sub">10% commission</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Creator Network</div><button class="btn btn-p">+ Invite Creator</button></div>
+    <div class="tw"><table><thead><tr><th>Creator</th><th>Handle</th><th>Status</th><th>Lives</th><th>Orders</th><th>Commission</th><th>Order Link</th></tr></thead><tbody id="livelit-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ OUTREACH ═══════════════ -->
+<div class="page" id="p-outreach">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Sent This Week</div><div class="stat-val">142</div></div>
+    <div class="stat"><div class="stat-label">Response Rate</div><div class="stat-val" style="color:var(--green)">23%</div></div>
+    <div class="stat"><div class="stat-label">Awaiting Review</div><div class="stat-val" style="color:var(--amber)">18</div></div>
+    <div class="stat"><div class="stat-label">Converted</div><div class="stat-val" style="color:var(--teal)">31</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Discovered Creators — Pending Review</div><button class="btn btn-p">Run Discovery</button></div>
+    <div class="tw"><table><thead><tr><th>Creator</th><th>Platform</th><th>AI Score</th><th>Location</th><th>Followers</th><th>Status</th><th>Action</th></tr></thead><tbody id="outreach-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ WAITLIST ═══════════════ -->
+<div class="page" id="p-waitlist">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Total Waitlist</div><div class="stat-val" id="w-total" style="color:var(--green)">--</div></div>
+    <div class="stat"><div class="stat-label">Vendors</div><div class="stat-val" id="w-vendors">--</div></div>
+    <div class="stat"><div class="stat-label">Customers</div><div class="stat-val" id="w-customers">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Waitlist Signups</div><button class="btn btn-g">Export CSV</button></div>
+    <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>City</th><th>Source</th><th>Date</th></tr></thead><tbody id="waitlist-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ CARBON ═══════════════ -->
+<div class="page" id="p-carbon">
+  <div class="carbon-hero">
+    <div>
+      <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:8px">🌿 CITY TOTAL — Leeds &amp; Hull</div>
+      <div class="carbon-big" id="c-total">--</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.6);margin-top:6px">kg CO₂ saved (WRAP UK 2024)</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><div style="font-size:11px;color:rgba(255,255,255,.45)">🌳 Trees equivalent</div><div style="font-family:var(--font-m);font-size:22px;color:#86efac" id="c-trees">--</div></div>
+      <div><div style="font-size:11px;color:rgba(255,255,255,.45)">🚗 Miles not driven</div><div style="font-family:var(--font-m);font-size:22px;color:#fbbf24" id="c-miles">--</div></div>
+      <div><div style="font-size:11px;color:rgba(255,255,255,.45)">🍽️ Meals rescued</div><div style="font-family:var(--font-m);font-size:22px;color:#60a5fa" id="c-meals">--</div></div>
+    </div>
+  </div>
+  <!-- Carbon credit split -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd"><div class="panel-title">Carbon Credit Distribution</div><span style="font-size:11px;color:var(--muted)">Applied to every order</span></div>
+    <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px">
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:14px;margin-bottom:8px">👤 Customer</div>
+        <div style="font-family:var(--font-m);font-size:32px;font-weight:500;color:var(--teal)">25%</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden"><div style="width:25%;height:100%;background:var(--teal);border-radius:2px"></div></div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:14px;margin-bottom:8px">🏪 Seller</div>
+        <div style="font-family:var(--font-m);font-size:32px;font-weight:500;color:var(--green)">50%</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden"><div style="width:50%;height:100%;background:var(--green);border-radius:2px"></div></div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:14px;margin-bottom:8px">🌿 YumCycle</div>
+        <div style="font-family:var(--font-m);font-size:32px;font-weight:500;color:var(--amber)">15%</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden"><div style="width:15%;height:100%;background:var(--amber);border-radius:2px"></div></div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:14px;margin-bottom:8px">🛵 Rider</div>
+        <div style="font-family:var(--font-m);font-size:32px;font-weight:500;color:var(--purple)">10%</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:10px;overflow:hidden"><div style="width:10%;height:100%;background:var(--purple);border-radius:2px"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Carbon Leaderboard — Top 20</div><span style="font-size:11px;color:var(--muted)">pre-verification</span></div>
+    <div class="tw"><table><thead><tr><th>Rank</th><th>Customer</th><th>CO₂ Saved</th><th>Meals</th><th>Tier</th></tr></thead><tbody id="carbon-tbl"><tr><td colspan="5" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ WALLETS ═══════════════ -->
+<div class="page" id="p-wallets">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Wallets</div><div class="stat-val" id="wlt-count" style="color:var(--purple)">--</div></div>
+    <div class="stat"><div class="stat-label">Total Balance</div><div class="stat-val" id="wlt-balance" style="color:var(--green)">--</div><div class="stat-sub">kg CO₂</div></div>
+    <div class="stat"><div class="stat-label">Total Earned</div><div class="stat-val" id="wlt-earned" style="color:var(--teal)">--</div><div class="stat-sub">kg CO₂ all time</div></div>
+    <div class="stat"><div class="stat-label">Total Redeemed</div><div class="stat-val" id="wlt-redeemed" style="color:var(--amber)">--</div><div class="stat-sub">kg CO₂</div></div>
+  </div>
+  <!-- Redemption rate: 1 kg CO₂ = £0.50 -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd"><div class="panel-title">Redemption Policy</div></div>
+    <div style="padding:20px;display:flex;gap:20px;flex-wrap:wrap">
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;flex:1;min-width:160px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">REDEMPTION RATE</div>
+        <div style="font-family:var(--font-m);font-size:26px;color:var(--amber)">1 kg = £0.50</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">discount value</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;flex:1;min-width:160px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">MINIMUM</div>
+        <div style="font-family:var(--font-m);font-size:26px;color:var(--green)">1 kg</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">per redemption</div>
+      </div>
+      <div style="background:var(--ink3);border-radius:12px;padding:16px;flex:1;min-width:160px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">CUSTOMER SHARE</div>
+        <div style="font-family:var(--font-m);font-size:26px;color:var(--purple)">25%</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">of net CO₂/order</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">All Customer Wallets</div><button class="btn btn-g">Export for Verra</button></div>
+    <div class="tw"><table><thead><tr><th>Customer</th><th>Balance (kg)</th><th>Lifetime Earned</th><th>Redeemed</th><th>Donated</th><th>Orders</th><th>Tier</th></tr></thead><tbody id="wallets-tbl"><tr><td colspan="7" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ LEADERBOARD ═══════════════ -->
+<div class="page" id="p-leaderboard">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">City CO₂ Total</div><div class="stat-val" id="lb-total" style="color:var(--green)">--</div><div class="stat-sub">kg CO₂ saved</div></div>
+    <div class="stat"><div class="stat-label">Meals Rescued</div><div class="stat-val" id="lb-meals" style="color:var(--teal)">--</div></div>
+    <div class="stat"><div class="stat-label">Trees Equivalent</div><div class="stat-val" id="lb-trees" style="color:var(--green)">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">🏆 Top 20 Rescuers — Leeds &amp; Hull</div><a href="https://dev.yumcycle.com/leaderboard" target="_blank" style="font-size:12px;color:var(--green)">View public page →</a></div>
+    <div class="tw"><table><thead><tr><th>Rank</th><th>Customer</th><th>CO₂ Saved</th><th>Meals</th><th>Tier</th></tr></thead><tbody id="lb-tbl"><tr><td colspan="5" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ COMPLIANCE ═══════════════ -->
+<div class="page" id="p-compliance">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-label">Food Diverted</div><div class="stat-val" id="cp-kg" style="color:var(--green)">--</div><div class="stat-sub">all time (kg)</div></div>
+    <div class="stat"><div class="stat-label">Verra Status</div><div class="stat-val" style="color:var(--amber);font-size:18px">Pre-validation</div></div>
+    <div class="stat"><div class="stat-label">Data Collection</div><div class="stat-val" style="color:var(--green);font-size:18px">Active ✅</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">WRAP-Aligned Monthly Report</div><button class="btn btn-g">Export PDF</button></div>
+    <div class="tw"><table><thead><tr><th>Month</th><th>Kg Diverted</th><th>CO₂ Est.</th><th>Orders</th><th>Vendors</th><th>Audit Status</th></tr></thead><tbody id="compliance-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ANALYTICS ═══════════════ -->
+<div class="page" id="p-analytics">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">App Downloads</div><div class="stat-val">4,821</div><div class="stat-sub">↑ 12% this week</div></div>
+    <div class="stat"><div class="stat-label">DAU</div><div class="stat-val">892</div><div class="stat-sub">↑ 8%</div></div>
+    <div class="stat"><div class="stat-label">Avg Order Value</div><div class="stat-val" style="color:var(--amber)">£6.56</div></div>
+    <div class="stat"><div class="stat-label">Repeat Order Rate</div><div class="stat-val" style="color:var(--green)">64%</div></div>
+  </div>
+  <div class="panel" style="padding:24px">
+    <div class="panel-title" style="margin-bottom:12px">Platform Analytics</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.7">Connect Google Analytics or Mixpanel to see real-time user flows and retention cohorts. Your Expo app is instrumented with push notification tracking. Connect via <code style="background:var(--ink3);padding:2px 6px;border-radius:4px">config/analytics.ts</code>.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div class="page" id="p-settings">
+  <div class="panel" style="max-width:600px;padding:24px">
+    <div class="panel-title" style="margin-bottom:20px">Platform Settings</div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Backend URL</span><span style="font-size:13px;font-weight:500;color:var(--green)">https://yumcycle-backend-new-lastest-now.onrender.com</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Company</span><span style="font-size:13px;font-weight:500;color:var(--text)">Grabnex Ecommerce Ltd (Co. No. 15288512)</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Email</span><span style="font-size:13px;font-weight:500;color:var(--text)">hello@yumcycle.com</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Cities</span><span style="font-size:13px;font-weight:500;color:var(--text)">Leeds &amp; Hull</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Carbon Methodology</span><span style="font-size:13px;font-weight:500;color:var(--teal)">WRAP UK 2024 + DEFRA 2024</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Verra Status</span><span style="font-size:13px;font-weight:500;color:var(--amber)">Pre-validation — VM0046 pathway</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Platform Fee</span><span style="font-size:13px;font-weight:500;color:var(--text)">20% of order total</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Rider Share</span><span style="font-size:13px;font-weight:500;color:var(--purple)">80% of delivery fee</span></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ WEBSITE ═══════════════ -->
+<div class="page" id="p-website">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Live Pages</div><div class="stat-val" style="color:var(--teal)">12</div><div class="stat-sub">public routes</div></div>
+    <div class="stat"><div class="stat-label">Waitlist Total</div><div class="stat-val" id="web-waitlist" style="color:var(--green)">--</div><div class="stat-sub">all signups</div></div>
+    <div class="stat"><div class="stat-label">Vendor Applications</div><div class="stat-val" id="web-vendors" style="color:var(--amber)">--</div><div class="stat-sub">from website</div></div>
+    <div class="stat"><div class="stat-label">Customers</div><div class="stat-val" id="web-customers" style="color:var(--purple)">--</div><div class="stat-sub">consumer signups</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd">
+      <div class="panel-title">Website Pages</div>
+      <a href="https://dev.yumcycle.com" target="_blank" style="font-size:12px;color:var(--green)">Open website →</a>
+    </div>
+    <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px" id="website-pages-grid"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd">
+      <div class="panel-title">Recent Waitlist Signups</div>
+      <button class="panel-act" onclick="go('waitlist',null)">Manage all →</button>
+    </div>
+    <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>City</th><th>Source</th><th>Date</th></tr></thead><tbody id="web-waitlist-tbl"><tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+const API = 'https://yumcycle-backend-new-lastest-now.onrender.com/api'
+const SITE = 'https://dev.yumcycle.com'
+const ADMIN_KEY_STORE = 'yc_admin_key'
+const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',analytics:'Analytics',settings:'Settings',website:'Website'}
+
+// ── State ────────────────────────────────────────────────────────
+let adminKey = localStorage.getItem(ADMIN_KEY_STORE) || ''
+let allVendorsCache = []
+let allRidersCache  = []
+let waitlistCache   = []
+let currentVendorFilter = 'all'
+let currentRiderFilter  = 'all'
+
+// ── Helpers ───────────────────────────────────────────────────────
+function go(id, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  document.getElementById('p-' + id).classList.add('active')
+  if (navEl) navEl.classList.add('active')
+  document.getElementById('ptitle').textContent = titles[id] || id
+  if (id === 'vendors')    buildVendors()
+  if (id === 'riders')     buildRiders()
+  if (id === 'orders')     buildOrders()
+  if (id === 'customers')  buildCustomers()
+  if (id === 'deliveries') buildDeliveries()
+  if (id === 'waitlist')   buildWaitlist()
+  if (id === 'website')    buildWebsite()
+}
+function ftab(el) {
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+}
+function pill(label, type) { return `<span class="pill p-${type}">${label}</span>` }
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val }
+function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1)+'k' : n }
+function fmtDate(d) { return new Date(d).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) }
+function getTier(kg) {
+  if (kg >= 50) return {icon:'💎',label:'Platinum',color:'#A8D8EA'}
+  if (kg >= 20) return {icon:'🥇',label:'Gold',    color:'#FFD700'}
+  if (kg >=  5) return {icon:'🥈',label:'Silver',  color:'#C0C0C0'}
+  return              {icon:'🥉',label:'Bronze',   color:'#CD7F32'}
+}
+const rn  = (a,b) => Math.floor(Math.random()*(b-a+1))+a
+const ra  = a => a[rn(0,a.length-1)]
+const names   = ['Aisha J','Mohammed A','Sarah C','James W','Fatima P','Tom B','Priya S','Luke D','Zainab K','Oliver M']
+const mockVendors = ['Curry House','Jade Garden','Green Bowl','Spice Route',"Mama's","Falafel Corner","Pie Shop","Noodle Bar"]
+const cities  = ['Leeds LS1','Leeds LS6','Hull HU1','Leeds LS2','Hull HU3']
+
+// ── Admin Auth ────────────────────────────────────────────────────
+async function doAdminLogin() {
+  const key = document.getElementById('admin-key-input').value.trim()
+  if (!key) return
+  document.getElementById('login-error').style.display = 'none'
+  try {
+    const r = await fetch(`${API}/admin/stats`, { headers: { 'x-admin-key': key } })
+    if (r.ok) {
+      adminKey = key
+      localStorage.setItem(ADMIN_KEY_STORE, key)
+      document.getElementById('login-overlay').style.display = 'none'
+      fetchAll()
+    } else {
+      document.getElementById('login-error').style.display = 'block'
+    }
+  } catch {
+    document.getElementById('login-error').style.display = 'block'
+  }
+}
+function adminLogout() {
+  if (!confirm('Sign out of admin dashboard?')) return
+  localStorage.removeItem(ADMIN_KEY_STORE)
+  adminKey = ''
+  location.reload()
+}
+
+// ── Main fetch ────────────────────────────────────────────────────
+async function fetchAll() {
+  buildOverviewStats()        // real: /admin/stats
+  fetchCarbonLeaderboard()    // real: /carbon/leaderboard (public, no auth)
+  buildVendors()              // real: /admin/sellers
+  buildRiders()               // real: /admin/riders
+  buildOrders()               // real: /admin/orders
+  buildCustomers()            // real: /admin/customers
+  buildDeliveries()           // real: /admin/deliveries
+  buildWaitlist()             // real: /waitlist
+  buildWebsite()              // reuses waitlist + page cards
+  buildLivelit()              // mock
+  buildOutreach()             // mock
+  buildWallets()              // mock (wallet /all uses JWT auth, not x-admin-key)
+  buildCompliance()           // mock
+  buildOverviewStaticParts()  // static feed + chart + top vendors
+}
+
+// ── Overview (real data from /admin/stats) ────────────────────────
+async function buildOverviewStats() {
+  try {
+    const r = await fetch(`${API}/admin/stats`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = await r.json()
+    const s = d.data
+    setText('ov-orders',     fmt(s.totalOrders))
+    setText('ov-orders-sub', `↑ ${s.todayOrders} new today`)
+    setText('ov-vendors',    s.approvedSellers)
+    setText('ov-revenue',    '£' + (s.totalRevenue ?? 0).toLocaleString('en-GB', {minimumFractionDigits:2,maximumFractionDigits:2}))
+    setText('ov-rev-sub',    `${s.pendingSellers} pending approval`)
+    setText('ov-co2',        (s.totalCO2 ?? 0).toFixed(1))
+    setText('ov-riders',     s.activeRiders)
+    setText('ov-creators',   rn(10,14))
+    const statusColor = {pending:'amber',accepted:'teal',completed:'green',cancelled:'red',rejected:'red'}
+    if (s.recentOrders?.length) {
+      document.getElementById('ov-orders-tbl').innerHTML = s.recentOrders.map(o=>`<tr>
+        <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">#${o.orderId}</td>
+        <td>${o.customerName}</td>
+        <td style="color:var(--muted)">${o.sellerName}</td>
+        <td style="font-family:var(--font-m)">£${(o.total||0).toFixed(2)}</td>
+        <td>${pill(o.status, statusColor[o.status]||'gray')}</td>
+        <td style="font-family:var(--font-m);color:var(--teal)">${(o.carbonCredit||0).toFixed(2)} kg</td>
+      </tr>`).join('')
+    }
+  } catch {
+    // Keep "--" placeholders — silently fail overview stats
+  }
+}
+
+function buildOverviewStaticParts() {
+  // Feed (static demo events)
+  const events = [
+    {i:'🛒',txt:'New order — Jerk Chicken at Spice Route · £8.40',time:'2 min ago'},
+    {i:'👤',txt:'New customer — Leeds LS6',time:'5 min ago'},
+    {i:'🔴',txt:'@chefaisha went LIVE — 8 orders placed',time:'12 min ago'},
+    {i:'💳',txt:'Payout £124.50 to The Curry House',time:'18 min ago'},
+    {i:'🛵',txt:'New rider approved — Hull HU1',time:'25 min ago'},
+    {i:'🛒',txt:'Order completed — Green Bowl Hull',time:'34 min ago'},
+    {i:'🏪',txt:"New vendor — Mama's Kitchen approved",time:'1 hr ago'},
+    {i:'💳',txt:'Carbon credits redeemed — £3.50 discount',time:'1 hr ago'},
+  ]
+  document.getElementById('ov-feed').innerHTML = events.map(e=>`
+    <div class="feed-item">
+      <div class="feed-dot" style="background:rgba(45,155,78,.1)">${e.i}</div>
+      <div class="feed-body"><div class="feed-title">${e.txt}</div><div class="feed-time">${e.time}</div></div>
+    </div>`).join('')
+
+  // Top vendors (use approved sellers cache if loaded, else static)
+  const approved = allVendorsCache.filter(s => s.sellerProfile?.approvalStatus === 'approved').slice(0,4)
+  if (approved.length) {
+    document.getElementById('ov-top-vendors').innerHTML = approved.map(s => {
+      const sp = s.sellerProfile || {}
+      const pr = sp.type === 'individual' ? sp.individual : sp.company
+      const biz = pr?.businessName || `${s.firstName} ${s.lastName}`
+      const city = pr?.address?.city || pr?.address || 'UK'
+      return `<div class="vrow"><div class="vav">${biz[0]?.toUpperCase()||'?'}</div>
+        <div><div class="vname">${biz}</div><div class="vsub">${city}</div></div>
+        <div class="vstat"><div class="vrev">${pill('approved','green')}</div></div></div>`
+    }).join('')
+  } else {
+    const vends = [{n:'The Curry House',c:'Leeds LS1',r:'£1,240',o:84},{n:'Jade Garden',c:'Hull HU1',r:'£980',o:71},{n:'Green Bowl',c:'Leeds LS6',r:'£824',o:58},{n:'Spice Route',c:'Leeds LS2',r:'£614',o:44}]
+    document.getElementById('ov-top-vendors').innerHTML = vends.map(v=>`
+      <div class="vrow"><div class="vav">${v.n[0]}</div>
+        <div><div class="vname">${v.n}</div><div class="vsub">${v.c}</div></div>
+        <div class="vstat"><div class="vrev">${v.r}</div><div class="vord">${v.o} orders</div></div></div>`).join('')
+  }
+
+  // CO₂ bar chart (static monthly data)
+  const months = [{m:'Nov',v:420},{m:'Dec',v:510},{m:'Jan',v:580},{m:'Feb',v:720},{m:'Mar',v:890},{m:'Apr',v:727}]
+  const max = Math.max(...months.map(m=>m.v))
+  document.getElementById('ov-chart').innerHTML = months.map((m,i)=>`
+    <div class="bar-col">
+      <div class="bar-val">${m.v}</div>
+      <div class="bar-fill ${i===months.length-1?'cur':''}" style="height:${Math.max(12,m.v/max*80)}px"></div>
+      <div class="bar-label">${m.m}</div>
+    </div>`).join('')
+}
+
+// ── Carbon leaderboard (public, no auth needed) ───────────────────
+async function fetchCarbonLeaderboard() {
+  try {
+    const r = await fetch(`${API}/carbon/leaderboard`)
+    const d = await r.json()
+    const lb = d?.data ?? d
+    if (!lb) return
+    const total = lb.cityTotalCO2Kg ?? 0
+    const meals = lb.cityTotalMeals ?? 0
+    setText('c-total', total.toFixed(1))
+    setText('c-trees', Math.round(total / 21.7))
+    setText('c-miles', Math.round(total / 0.404))
+    setText('c-meals', fmt(meals))
+    setText('lb-total', total.toFixed(1))
+    setText('lb-meals', fmt(meals))
+    setText('lb-trees', Math.round(total / 21.7))
+    buildLeaderboard(lb.leaderboard || [])
+  } catch {
+    // keep -- placeholders
+  }
+}
+
+function buildLeaderboard(data) {
+  const tbl   = document.getElementById('carbon-tbl')
+  const lbtbl = document.getElementById('lb-tbl')
+  if (!data.length) {
+    const empty = '<tr><td colspan="5" class="loading" style="color:var(--muted)">No data yet</td></tr>'
+    if (tbl)   tbl.innerHTML   = empty
+    if (lbtbl) lbtbl.innerHTML = empty
+    return
+  }
+  const rows = data.slice(0,20).map((e,i) => {
+    const tier  = getTier(e.totalCO2Kg ?? 0)
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`
+    return `<tr>
+      <td style="font-family:var(--font-m);font-weight:700">${medal}</td>
+      <td style="font-weight:500">${e.customerName ?? 'Anonymous'}</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${(e.totalCO2Kg??0).toFixed(2)} kg</td>
+      <td style="font-family:var(--font-m)">${e.mealCount ?? 0}</td>
+      <td><span class="pill" style="background:${tier.color}22;color:${tier.color}">${tier.icon} ${tier.label}</span></td>
+    </tr>`
+  }).join('')
+  if (tbl)   tbl.innerHTML   = rows
+  if (lbtbl) lbtbl.innerHTML = rows
+}
+
+// ── Vendors (real data from /admin/sellers) ───────────────────────
+async function buildVendors() {
+  document.getElementById('vendors-tbl').innerHTML = '<tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/admin/sellers`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error('auth')
+    const d = await r.json()
+    allVendorsCache = d.data || []
+    const approved = allVendorsCache.filter(s => s.sellerProfile?.approvalStatus === 'approved').length
+    const pending  = allVendorsCache.filter(s => s.sellerProfile?.approvalStatus === 'pending').length
+    const rejected = allVendorsCache.filter(s => s.sellerProfile?.approvalStatus === 'rejected').length
+    setText('v-total',    allVendorsCache.length)
+    setText('v-approved', approved)
+    setText('v-pending',  pending)
+    setText('v-rejected', rejected)
+    renderVendorsTable(allVendorsCache, currentVendorFilter)
+  } catch {
+    document.getElementById('vendors-tbl').innerHTML = '<tr><td colspan="8" class="loading" style="color:var(--red)">Failed to load vendors. Check your admin key.</td></tr>'
+  }
+}
+
+function filterVendors(status, tabEl) {
+  currentVendorFilter = status
+  document.querySelectorAll('#vendor-tabs .tab').forEach(t => t.classList.remove('active'))
+  if (tabEl) tabEl.classList.add('active')
+  renderVendorsTable(allVendorsCache, status)
+}
+
+function renderVendorsTable(sellers, filter) {
+  const filtered = filter === 'all' ? sellers : sellers.filter(s => s.sellerProfile?.approvalStatus === filter)
+  const countEl = document.getElementById('vendor-count')
+  if (countEl) countEl.textContent = `${filtered.length} vendor${filtered.length !== 1 ? 's' : ''}`
+  if (!filtered.length) {
+    document.getElementById('vendors-tbl').innerHTML = `<tr><td colspan="8" class="loading" style="color:var(--muted)">No vendors${filter !== 'all' ? ' with status "'+filter+'"' : ''}</td></tr>`
+    return
+  }
+  const statusColor = { approved:'green', pending:'amber', rejected:'red' }
+  document.getElementById('vendors-tbl').innerHTML = filtered.map(s => {
+    const sp   = s.sellerProfile || {}
+    const pr   = sp.type === 'company' ? sp.company : sp.individual
+    const biz  = pr?.businessName || `${s.firstName} ${s.lastName}`
+    const city = pr?.address?.city || pr?.address || '—'
+    const sc   = statusColor[sp.approvalStatus] || 'gray'
+    const stripe = sp.stripeAccountId
+      ? `<span class="pill p-green">Connected</span>`
+      : `<span class="pill p-gray">Not set</span>`
+    const actions = sp.approvalStatus === 'pending'
+      ? `<button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="doUpdateSellerStatus('${s._id}','approved',this)">✓ Approve</button>
+         <button class="btn btn-g" style="padding:5px 12px;font-size:11px;margin-left:4px;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="doUpdateSellerStatus('${s._id}','rejected',this)">✗ Reject</button>`
+      : sp.approvalStatus === 'approved'
+      ? `<button class="btn btn-g" style="padding:5px 12px;font-size:11px;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="doUpdateSellerStatus('${s._id}','rejected',this)">Suspend</button>`
+      : `<button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="doUpdateSellerStatus('${s._id}','approved',this)">Reinstate</button>`
+    return `<tr id="vendor-row-${s._id}">
+      <td><div style="font-weight:600">${s.firstName} ${s.lastName||''}</div><div style="font-size:11px;color:var(--muted)">${s.email}</div></td>
+      <td style="color:var(--muted);text-transform:capitalize">${sp.vendorType || '—'}</td>
+      <td style="font-weight:500">${biz}</td>
+      <td style="color:var(--muted)">${city}</td>
+      <td>${pill(sp.approvalStatus || 'unknown', sc)}</td>
+      <td>${stripe}</td>
+      <td style="font-size:12px;color:var(--muted)">${fmtDate(s.createdAt)}</td>
+      <td id="vendor-action-${s._id}">${actions}</td>
+    </tr>`
+  }).join('')
+}
+
+async function doUpdateSellerStatus(sellerId, status, btnEl) {
+  const orig = btnEl.textContent
+  btnEl.disabled = true
+  btnEl.textContent = '…'
+  try {
+    const r = await fetch(`${API}/admin/sellers/${sellerId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ status })
+    })
+    if (!r.ok) throw new Error()
+    const updated = await r.json()
+    const idx = allVendorsCache.findIndex(s => s._id === sellerId)
+    if (idx !== -1) allVendorsCache[idx] = updated.data
+    renderVendorsTable(allVendorsCache, currentVendorFilter)
+  } catch {
+    btnEl.disabled = false
+    btnEl.textContent = orig
+    alert('Failed to update vendor status. Please try again.')
+  }
+}
+
+async function buildOrders() {
+  document.getElementById('orders-tbl').innerHTML = '<tr><td colspan="10" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/admin/orders`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = await r.json()
+    const orders = d.data || []
+    const sc = { pending:'amber', accepted:'teal', completed:'green', cancelled:'red', rejected:'red' }
+    document.getElementById('orders-tbl').innerHTML = orders.length
+      ? orders.map(o => `<tr>
+          <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">#${o.orderId}</td>
+          <td style="font-weight:500">${o.customerName || '—'}</td>
+          <td style="color:var(--muted)">${o.sellerName || '—'}</td>
+          <td style="font-family:var(--font-m)">${o.itemCount || 0}</td>
+          <td style="font-family:var(--font-m);color:var(--amber)">£${(o.total||0).toFixed(2)}</td>
+          <td style="font-family:var(--font-m);color:var(--teal)">${(o.carbonCredit||0).toFixed(2)} kg</td>
+          <td>${pill(o.orderType||'delivery', o.orderType==='collection'?'blue':'purple')}</td>
+          <td style="font-family:var(--font-m);font-size:12px;color:var(--green)">${o.voucherCode||'—'}</td>
+          <td>${pill(o.status, sc[o.status]||'gray')}</td>
+          <td style="font-size:12px;color:var(--muted)">${fmtDate(o.createdAt)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="10" class="loading" style="color:var(--muted)">No orders found</td></tr>'
+  } catch {
+    document.getElementById('orders-tbl').innerHTML = '<tr><td colspan="10" class="loading" style="color:var(--red)">Failed to load orders.</td></tr>'
+  }
+}
+
+async function buildCustomers() {
+  document.getElementById('customers-tbl').innerHTML = '<tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/admin/customers`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = await r.json()
+    const customers = d.data || []
+    document.getElementById('customers-tbl').innerHTML = customers.length
+      ? customers.map(c => {
+          const tier   = getTier(c.totalCO2 ?? 0)
+          const wallet = ((c.totalCO2 ?? 0) * 0.25).toFixed(2)
+          return `<tr>
+            <td style="font-weight:500">${c.name || '—'}</td>
+            <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">${c.email}</td>
+            <td style="color:var(--muted)">${c.city || '—'}</td>
+            <td style="font-family:var(--font-m)">${c.orderCount ?? 0}</td>
+            <td style="font-family:var(--font-m);color:var(--amber)">£${(c.totalSpend||0).toFixed(2)}</td>
+            <td style="font-family:var(--font-m);color:var(--teal)">${(c.totalCO2||0).toFixed(2)} kg</td>
+            <td style="font-family:var(--font-m);color:var(--purple)">${wallet} kg</td>
+            <td><span class="pill" style="background:${tier.color}22;color:${tier.color}">${tier.icon} ${tier.label}</span></td>
+            <td style="font-size:12px;color:var(--muted)">${fmtDate(c.createdAt)}</td>
+          </tr>`
+        }).join('')
+      : '<tr><td colspan="9" class="loading" style="color:var(--muted)">No customers found</td></tr>'
+  } catch {
+    document.getElementById('customers-tbl').innerHTML = '<tr><td colspan="9" class="loading" style="color:var(--red)">Failed to load customers.</td></tr>'
+  }
+}
+
+// ── Riders (real data) ────────────────────────────────────────────
+async function buildRiders() {
+  document.getElementById('riders-tbl').innerHTML = '<tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/admin/riders`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error('auth')
+    const d = await r.json()
+    allRidersCache = d.data || []
+    renderRidersTable(allRidersCache, currentRiderFilter)
+  } catch (e) {
+    document.getElementById('riders-tbl').innerHTML = '<tr><td colspan="9" class="loading" style="color:var(--red)">Failed to load riders. Check your admin key.</td></tr>'
+  }
+}
+
+function filterRiders(status, tabEl) {
+  currentRiderFilter = status
+  document.querySelectorAll('#rider-tabs .tab').forEach(t => t.classList.remove('active'))
+  if (tabEl) tabEl.classList.add('active')
+  renderRidersTable(allRidersCache, status)
+}
+
+function renderRidersTable(riders, filter) {
+  const filtered = filter === 'all' ? riders : riders.filter(r => r.status === filter)
+  const approved = riders.filter(r => r.status === 'approved').length
+  const pending  = riders.filter(r => r.status === 'pending').length
+
+  setText('r-total',  riders.length)
+  setText('r-online', approved)
+  setText('r-today',  pending + ' pending')
+  setText('r-rating', '--')
+  const countEl = document.getElementById('rider-count')
+  if (countEl) countEl.textContent = `${filtered.length} rider${filtered.length !== 1 ? 's' : ''}`
+
+  if (filtered.length === 0) {
+    document.getElementById('riders-tbl').innerHTML = `<tr><td colspan="9" class="loading" style="color:var(--muted)">No riders${filter !== 'all' ? ' with status "'+filter+'"' : ''}</td></tr>`
+    return
+  }
+
+  const vehicleIcon = { ebike:'⚡', bicycle:'🚲', motorcycle:'🏍️', car:'🚗' }
+  const statusColor = { approved:'green', pending:'amber', suspended:'red' }
+
+  document.getElementById('riders-tbl').innerHTML = filtered.map(r => {
+    const joined = new Date(r.createdAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    const sc = statusColor[r.status] || 'gray'
+    const icon = vehicleIcon[r.vehicleType] || '🛵'
+    const actions = r.status === 'pending'
+      ? `<button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="doUpdateStatus('${r._id}','approved',this)">✓ Approve</button>`
+      : r.status === 'approved'
+      ? `<button class="btn btn-g" style="padding:5px 12px;font-size:11px;color:var(--red);border-color:rgba(239,68,68,.3)" onclick="doUpdateStatus('${r._id}','suspended',this)">Suspend</button>`
+      : `<button class="btn btn-p" style="padding:5px 12px;font-size:11px" onclick="doUpdateStatus('${r._id}','approved',this)">Reinstate</button>
+         <button class="btn btn-g" style="padding:5px 12px;font-size:11px;margin-left:4px" onclick="doUpdateStatus('${r._id}','pending',this)">Reset</button>`
+    return `<tr id="rider-row-${r._id}">
+      <td><div style="font-weight:600">${r.firstName} ${r.lastName || ''}</div><div style="font-size:11px;color:var(--muted)">${r.email}</div><div style="font-size:11px;color:var(--dim)">${r.phone || ''}</div></td>
+      <td>${icon} ${r.vehicleType}</td>
+      <td style="color:var(--muted)">${r.city}</td>
+      <td>${pill(r.status, sc)}</td>
+      <td style="font-family:var(--font-m)">${r.totalDeliveries}</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">£${(r.totalEarnings||0).toFixed(2)}</td>
+      <td style="color:var(--muted);text-transform:capitalize">${r.riderType}</td>
+      <td style="font-size:12px;color:var(--muted)">${joined}</td>
+      <td id="action-${r._id}">${actions}</td>
+    </tr>`
+  }).join('')
+}
+
+async function doUpdateStatus(riderId, status, btnEl) {
+  const orig = btnEl.textContent
+  btnEl.disabled = true
+  btnEl.textContent = '…'
+  try {
+    const r = await fetch(`${API}/admin/riders/${riderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ status })
+    })
+    if (!r.ok) throw new Error()
+    // Update cache and re-render
+    const updated = await r.json()
+    const idx = allRidersCache.findIndex(r => r._id === riderId)
+    if (idx !== -1) allRidersCache[idx] = updated.data
+    renderRidersTable(allRidersCache, currentRiderFilter)
+  } catch {
+    btnEl.disabled = false
+    btnEl.textContent = orig
+    alert('Failed to update rider status. Please try again.')
+  }
+}
+
+async function buildDeliveries() {
+  document.getElementById('deliveries-tbl').innerHTML = '<tr><td colspan="9" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/admin/deliveries`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = await r.json()
+    const deliveries = d.data || []
+    const stats = d.stats || {}
+    setText('d-total',  stats.total ?? deliveries.length)
+    setText('d-active', stats.inTransit ?? 0)
+    const avgDist = deliveries.length
+      ? (deliveries.reduce((s,x)=>s+(x.distanceMiles||0),0)/deliveries.length).toFixed(1)
+      : '--'
+    const avgFee = deliveries.length
+      ? '£'+(deliveries.reduce((s,x)=>s+(x.deliveryFee||0),0)/deliveries.length).toFixed(2)
+      : '--'
+    setText('d-dist', avgDist)
+    setText('d-fee',  avgFee)
+    const sc = { rider_assigned:'amber', picked_up:'teal', delivered:'green', failed:'red' }
+    document.getElementById('deliveries-tbl').innerHTML = deliveries.length
+      ? deliveries.map(del => `<tr>
+          <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">#${del.orderId}</td>
+          <td style="font-weight:500">${del.riderName || '—'}</td>
+          <td style="color:var(--muted)">${del.pickupAddress || '—'}</td>
+          <td style="color:var(--muted)">${del.deliveryAddress || '—'}</td>
+          <td style="font-family:var(--font-m)">${(del.distanceMiles||0).toFixed(1)} mi</td>
+          <td style="font-family:var(--font-m);color:var(--amber)">£${(del.deliveryFee||0).toFixed(2)}</td>
+          <td style="font-family:var(--font-m);color:var(--purple)">£${(del.riderPayout||0).toFixed(2)}</td>
+          <td style="font-family:var(--font-m);color:var(--green)">${(del.carbonNet||0).toFixed(2)} kg</td>
+          <td>${pill((del.status||'').replace(/_/g,' '), sc[del.status]||'gray')}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="9" class="loading" style="color:var(--muted)">No deliveries found</td></tr>'
+  } catch {
+    document.getElementById('deliveries-tbl').innerHTML = '<tr><td colspan="9" class="loading" style="color:var(--red)">Failed to load deliveries.</td></tr>'
+  }
+}
+
+function buildLivelit() {
+  const creators = [
+    {n:'Chef Aisha',h:'@chefaisha',st:'live',lives:14,orders:84,comm:'£62.40'},
+    {n:'Leeds BBQ',h:'@leedsbbq',st:'scheduled',lives:8,orders:51,comm:'£38.20'},
+    {n:'Hull Cooks',h:'@hullcooks',st:'active',lives:11,orders:67,comm:'£49.80'},
+    {n:'Spice Queen',h:'@spicequeen',st:'active',lives:6,orders:38,comm:'£28.60'},
+    {n:'Pastry Palace',h:'@pastrypalace',st:'pending',lives:0,orders:0,comm:'£0.00'},
+  ]
+  const sc = {live:'red',scheduled:'amber',active:'green',pending:'gray'}
+  document.getElementById('livelit-tbl').innerHTML = creators.map(c=>`<tr>
+    <td style="font-weight:600">${c.n}</td>
+    <td style="font-family:var(--font-m);color:var(--teal)">${c.h}</td>
+    <td>${pill(c.st,sc[c.st])}</td>
+    <td style="font-family:var(--font-m)">${c.lives}</td>
+    <td style="font-family:var(--font-m)">${c.orders}</td>
+    <td style="font-family:var(--font-m);color:var(--amber)">${c.comm}</td>
+    <td><a href="https://yumcycle.com/live/${c.h.slice(1)}" style="font-size:12px;color:var(--green);text-decoration:none" target="_blank">yumcycle.com/live/…</a></td>
+  </tr>`).join('')
+}
+
+function buildOutreach() {
+  const creators=[
+    {n:'@foodieleeds',pl:'TikTok',sc:87,loc:'Leeds LS6',flw:'14.2K',st:'pending'},
+    {n:'@hullhomecook',pl:'TikTok',sc:82,loc:'Hull HU1',flw:'8.9K',st:'pending'},
+    {n:'@yorkshireeats',pl:'Instagram',sc:74,loc:'Leeds',flw:'22.1K',st:'pending'},
+    {n:'@curryqueen_ld',pl:'TikTok',sc:71,loc:'Leeds LS2',flw:'6.4K',st:'sent'},
+    {n:'@pieladyhull',pl:'TikTok',sc:68,loc:'Hull HU3',flw:'4.1K',st:'replied'},
+  ]
+  const sc={pending:'amber',sent:'teal',replied:'green'}
+  document.getElementById('outreach-tbl').innerHTML = creators.map(c=>`<tr>
+    <td style="font-family:var(--font-m);color:var(--teal)">${c.n}</td>
+    <td>${c.pl}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:48px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden"><div style="width:${c.sc}%;height:100%;background:${c.sc>=80?'var(--green)':c.sc>=65?'var(--amber)':'var(--red)'}"></div></div>
+        <span style="font-family:var(--font-m);font-size:12px">${c.sc}</span>
+      </div>
+    </td>
+    <td style="color:var(--muted)">${c.loc}</td>
+    <td style="font-family:var(--font-m)">${c.flw}</td>
+    <td>${pill(c.st,sc[c.st])}</td>
+    <td>${c.st==='pending'?'<button class="btn btn-p" style="padding:5px 10px;font-size:11px">Approve &amp; Send</button>':'<button class="btn btn-g" style="padding:5px 10px;font-size:11px">View</button>'}</td>
+  </tr>`).join('')
+}
+
+async function buildWaitlist() {
+  document.getElementById('waitlist-tbl').innerHTML = '<tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/waitlist`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = await r.json()
+    waitlistCache = d.data || []
+    const total     = waitlistCache.length
+    const vendors   = waitlistCache.filter(e => e.role === 'vendor' || e.userType === 'vendor').length
+    const customers = total - vendors
+    setText('w-total',     total)
+    setText('w-vendors',   vendors)
+    setText('w-customers', customers)
+    document.getElementById('waitlist-tbl').innerHTML = waitlistCache.length
+      ? waitlistCache.slice(0,50).map(e => {
+          const role = e.role || e.userType || 'customer'
+          const rc   = role === 'vendor' ? 'amber' : 'teal'
+          return `<tr>
+            <td style="font-weight:500">${e.firstName || '—'}</td>
+            <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">${e.email}</td>
+            <td>${pill(role, rc)}</td>
+            <td style="color:var(--muted)">${e.city || '—'}</td>
+            <td style="color:var(--muted)">${e.source || 'yumcycle.com'}</td>
+            <td style="font-size:12px;color:var(--muted)">${fmtDate(e.createdAt)}</td>
+          </tr>`
+        }).join('')
+      : '<tr><td colspan="6" class="loading" style="color:var(--muted)">No waitlist entries yet</td></tr>'
+  } catch {
+    document.getElementById('waitlist-tbl').innerHTML = '<tr><td colspan="6" class="loading" style="color:var(--red)">Failed to load waitlist.</td></tr>'
+  }
+}
+
+async function buildWebsite() {
+  const pages = [
+    {n:'Home',          path:'/',               desc:'Landing page'},
+    {n:'How It Works',  path:'/how-it-works',   desc:'Process explainer'},
+    {n:'For Vendors',   path:'/for-vendors',    desc:'Seller sign-up'},
+    {n:'Sustainability',path:'/sustainability',  desc:'Carbon story'},
+    {n:'Leaderboard',   path:'/leaderboard',    desc:'Public CO₂ board'},
+    {n:'LiveLit House', path:'/livelit-house',  desc:'Creator hub'},
+    {n:'About',         path:'/about',          desc:'Company info'},
+    {n:'Contact',       path:'/contact',        desc:'Get in touch'},
+    {n:'Social',        path:'/social',         desc:'Community'},
+    {n:'Privacy',       path:'/privacy',        desc:'Privacy policy'},
+    {n:'Terms',         path:'/terms',          desc:'Terms of service'},
+    {n:'Cookies',       path:'/cookies',        desc:'Cookie policy'},
+  ]
+  const grid = document.getElementById('website-pages-grid')
+  if (grid) {
+    grid.innerHTML = pages.map(p => `
+      <a href="${SITE}${p.path}" target="_blank" style="text-decoration:none;display:block;background:var(--ink3);border:1px solid var(--border);border-radius:10px;padding:14px;transition:border-color .15s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${p.n}</div>
+        <div style="font-family:var(--font-m);font-size:11px;color:var(--green);margin-bottom:6px">${p.path}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.desc}</div>
+      </a>`).join('')
+  }
+  // Reuse waitlist data; fetch if not yet loaded
+  if (!waitlistCache.length) await buildWaitlist()
+  const total     = waitlistCache.length
+  const vendors   = waitlistCache.filter(e => e.role === 'vendor' || e.userType === 'vendor').length
+  setText('web-waitlist',   total)
+  setText('web-vendors',    vendors)
+  setText('web-customers',  total - vendors)
+  const wtbl = document.getElementById('web-waitlist-tbl')
+  if (wtbl) {
+    wtbl.innerHTML = waitlistCache.length
+      ? waitlistCache.slice(0,8).map(e => {
+          const role = e.role || e.userType || 'customer'
+          return `<tr>
+            <td style="font-weight:500">${e.firstName || '—'}</td>
+            <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">${e.email}</td>
+            <td>${pill(role, role==='vendor'?'amber':'teal')}</td>
+            <td style="color:var(--muted)">${e.city || '—'}</td>
+            <td style="color:var(--muted)">${e.source || 'yumcycle.com'}</td>
+            <td style="font-size:12px;color:var(--muted)">${fmtDate(e.createdAt)}</td>
+          </tr>`
+        }).join('')
+      : '<tr><td colspan="6" class="loading" style="color:var(--muted)">No signups yet</td></tr>'
+  }
+}
+
+function buildWallets() {
+  setText('wlt-count', rn(250,320))
+  setText('wlt-balance', (Math.random()*200+50).toFixed(1)+' kg')
+  setText('wlt-earned', (Math.random()*500+200).toFixed(1)+' kg')
+  setText('wlt-redeemed', (Math.random()*80+20).toFixed(1)+' kg')
+
+  document.getElementById('wallets-tbl').innerHTML = Array.from({length:12},()=>{
+    const earned = (Math.random()*60).toFixed(2)
+    const tier = getTier(parseFloat(earned))
+    const balance  = (earned*0.6).toFixed(2)
+    const redeemed = (earned*0.3).toFixed(2)
+    const donated  = (earned*0.1).toFixed(2)
+    const name = ra(names)
+    return `<tr>
+      <td style="font-weight:500">${name}</td>
+      <td style="font-family:var(--font-m);color:var(--purple)">${balance} kg</td>
+      <td style="font-family:var(--font-m);color:var(--green)">${earned} kg</td>
+      <td style="font-family:var(--font-m);color:var(--amber)">${redeemed} kg</td>
+      <td style="font-family:var(--font-m);color:#4ade80">${donated} kg</td>
+      <td style="font-family:var(--font-m)">${rn(3,40)}</td>
+      <td><span class="pill" style="background:${tier.color}22;color:${tier.color}">${tier.icon} ${tier.label}</span></td>
+    </tr>`
+  }).join('')
+}
+
+function buildCompliance() {
+  setText('cp-kg', rn(2000,2500)+' kg')
+  const months = ['November 2025','December 2025','January 2026','February 2026','March 2026','April 2026']
+  document.getElementById('compliance-tbl').innerHTML = months.map((m,i)=>{
+    const kg = rn(180,420)
+    return `<tr>
+      <td style="font-weight:500">${m}</td>
+      <td style="font-family:var(--font-m)">${kg} kg</td>
+      <td style="font-family:var(--font-m);color:var(--teal)">${(kg*2.2).toFixed(0)} kg</td>
+      <td style="font-family:var(--font-m)">${rn(80,200)}</td>
+      <td style="font-family:var(--font-m)">${rn(8,24)}</td>
+      <td>${pill(i<5?'complete':'in progress',i<5?'green':'amber')}</td>
+    </tr>`
+  }).join('')
+}
+
+// ── Auto-refresh feed ─────────────────────────────────────────────
+const feedEvents = [
+  '🛒 New order — £8.40 · Curry House Leeds',
+  '👤 New customer signup — Hull HU1',
+  '🔴 @chefaisha mentioned link in live',
+  '🛵 Rider collected from Green Bowl',
+  '🌿 CO₂ credited to 3 wallets',
+  '💳 Carbon credits redeemed — £3.50 discount',
+]
+setInterval(() => {
+  const feed = document.getElementById('ov-feed')
+  if (!feed) return
+  const item = document.createElement('div')
+  item.className = 'feed-item'
+  item.style.opacity = '0'
+  item.style.transition = 'opacity .4s'
+  item.innerHTML = `
+    <div class="feed-dot" style="background:rgba(45,155,78,.1)">⚡</div>
+    <div class="feed-body">
+      <div class="feed-title">${ra(feedEvents)}</div>
+      <div class="feed-time">just now</div>
+    </div>`
+  feed.insertBefore(item, feed.firstChild)
+  requestAnimationFrame(() => item.style.opacity = '1')
+  if (feed.children.length > 10) feed.removeChild(feed.lastChild)
+}, 8000)
+
+// ── Init ──────────────────────────────────────────────────────────
+if (adminKey) {
+  fetchAll()
+} else {
+  document.getElementById('login-overlay').style.display = 'flex'
+}
+</script>
+</body>
+</html>
