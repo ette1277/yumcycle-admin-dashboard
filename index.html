@@ -169,11 +169,16 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
       <div style="width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
       <div style="font-family:var(--font-h);font-size:20px;font-weight:800">Yum<span style="color:var(--green)">Cycle</span> Admin</div>
     </div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Enter your admin secret key to continue</div>
-    <input id="admin-key-input" type="password" placeholder="Admin secret key…" onkeydown="if(event.key==='Enter')doAdminLogin()" />
-    <div id="login-error" style="font-size:12px;color:var(--red);margin-bottom:12px;display:none">Invalid key — please try again.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Sign in with your admin credentials</div>
+    <input id="admin-email-input" type="email" placeholder="Admin email…" autocomplete="email" onkeydown="if(event.key==='Enter')doAdminLogin()" />
+    <input id="admin-pw-input" type="password" placeholder="Password…" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()" />
+    <div id="login-error" style="font-size:12px;color:var(--red);margin-bottom:12px;display:none">Invalid email or password — please try again.</div>
     <button class="login-submit" onclick="doAdminLogin()">Sign in →</button>
-    <div style="margin-top:16px;font-size:11px;color:var(--dim);line-height:1.6">Set <code style="background:var(--ink3);padding:1px 5px;border-radius:4px">ADMIN_SECRET_KEY</code> in your Render environment variables, then enter the same value here.</div>
+    <div style="margin-top:14px;text-align:center">
+      <span style="font-size:12px;color:var(--muted)">Forgot password? </span>
+      <span style="font-size:12px;color:var(--green);cursor:pointer;font-weight:600" onclick="doAdminForgotPassword()">Send reset email</span>
+    </div>
+    <div id="forgot-msg" style="font-size:12px;color:#4ade80;margin-top:10px;display:none;text-align:center">Recovery email sent — check your inbox.</div>
   </div>
 </div>
 
@@ -199,6 +204,8 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
     <div class="nav-item" onclick="go('wallets',this)"><span class="nav-icon">💳</span>Wallets</div>
     <div class="nav-item" onclick="go('leaderboard',this)"><span class="nav-icon">🏆</span>Leaderboard</div>
     <div class="nav-item" onclick="go('compliance',this)"><span class="nav-icon">📋</span>Compliance</div>
+    <div class="nav-sec">Sponsorship</div>
+    <div class="nav-item" onclick="go('sponsors',this)"><span class="nav-icon">🤝</span>Sponsors</div>
     <div class="nav-sec">System</div>
     <div class="nav-item" onclick="go('analytics',this)"><span class="nav-icon">📈</span>Analytics</div>
     <div class="nav-item" onclick="go('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
@@ -525,6 +532,77 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
   </div>
 </div>
 
+<!-- ═══════════════ SPONSORS ═══════════════ -->
+<div class="page" id="p-sponsors">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Total Sponsors</div><div class="stat-val" id="sp-total" style="color:var(--green)">--</div></div>
+    <div class="stat"><div class="stat-label">Active Campaigns</div><div class="stat-val" id="sp-campaigns" style="color:var(--teal)">--</div></div>
+    <div class="stat"><div class="stat-label">CO₂ Earned (kg)</div><div class="stat-val" id="sp-carbon" style="color:var(--green)">--</div></div>
+    <div class="stat"><div class="stat-label">Orders Sponsored</div><div class="stat-val" id="sp-orders" style="color:var(--purple)">--</div></div>
+  </div>
+
+  <!-- Sponsors table -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd">
+      <div class="panel-title">🤝 Sponsors</div>
+      <button class="btn btn-g" onclick="showCreateSponsorModal()">+ New Sponsor</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Contact</th><th>Budget Used</th><th>CO₂ Earned</th><th>Orders</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="sponsors-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sponsor detail (shown on row click) -->
+  <div id="sponsor-detail" style="display:none">
+    <div class="panel" style="border-color:var(--green);margin-bottom:20px">
+      <div class="panel-hd">
+        <div class="panel-title" id="sp-detail-name">Sponsor Details</div>
+        <button class="panel-act" onclick="document.getElementById('sponsor-detail').style.display='none'">Close ✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0 4px">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Budget Committed</span><div style="font-size:14px;font-weight:600;margin-top:4px" id="sp-detail-budget">—</div></div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Budget Used</span><div style="font-size:14px;font-weight:600;margin-top:4px" id="sp-detail-used">—</div></div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">CO₂ Earned</span><div style="font-size:14px;font-weight:600;color:var(--green);margin-top:4px" id="sp-detail-co2">—</div></div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Orders Sponsored</span><div style="font-size:14px;font-weight:600;margin-top:4px" id="sp-detail-ord">—</div></div>
+        <div style="padding:12px 16px;grid-column:1/-1"><span style="font-size:12px;color:var(--muted)">Dashboard Token Link</span><div style="font-size:11px;font-family:var(--font-m);color:var(--teal);margin-top:4px;word-break:break-all;cursor:pointer" id="sp-detail-token" onclick="copyTokenLink(this.textContent)">—</div></div>
+      </div>
+
+      <!-- Campaigns -->
+      <div style="padding:16px 20px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-family:var(--font-h);font-size:13px;font-weight:700">Campaigns</div>
+          <button class="btn btn-g" onclick="toggleCampaignForm()">+ New Campaign</button>
+        </div>
+        <!-- Inline campaign form -->
+        <div id="campaign-form" style="display:none;background:var(--ink3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Campaign Name</label><input id="cf-name" placeholder="Summer Vouchers 2026" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+            <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Voucher Type</label><select id="cf-type" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"><option value="free">Free</option><option value="percentage">% Off</option><option value="fixed">£ Off</option></select></div>
+            <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Value (£ or %)</label><input id="cf-value" type="number" min="0" placeholder="0" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+            <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Min Order (£)</label><input id="cf-min" type="number" min="0" placeholder="0" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+            <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Budget (£)</label><input id="cf-budget" type="number" min="1" placeholder="500" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+            <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Expires</label><input id="cf-expires" type="date" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+          </div>
+          <div id="cf-msg" style="font-size:12px;margin-bottom:8px;display:none"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-g" onclick="submitCreateCampaign()">Create Campaign</button>
+            <button class="btn" onclick="toggleCampaignForm()" style="background:var(--ink2);color:var(--muted);border:1px solid var(--border)">Cancel</button>
+          </div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Name</th><th>Type</th><th>Value</th><th>Generated</th><th>Redeemed</th><th>CO₂</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="campaigns-tbl"><tr><td colspan="9" style="color:var(--muted);text-align:center;padding:16px">Select a sponsor above to see campaigns.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════ ANALYTICS ═══════════════ -->
 <div class="page" id="p-analytics">
   <div class="stats">
@@ -586,7 +664,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 const API = 'https://yumcycle-backend-new-lastest-now.onrender.com/api'
 const SITE = 'https://dev.yumcycle.com'
 const ADMIN_KEY_STORE = 'yc_admin_key'
-const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',analytics:'Analytics',settings:'Settings',website:'Website'}
+const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',analytics:'Analytics',settings:'Settings',website:'Website'}
 
 // ── State ────────────────────────────────────────────────────────
 let adminKey = localStorage.getItem(ADMIN_KEY_STORE) || ''
@@ -633,14 +711,20 @@ const cities  = ['Leeds LS1','Leeds LS6','Hull HU1','Leeds LS2','Hull HU3']
 
 // ── Admin Auth ────────────────────────────────────────────────────
 async function doAdminLogin() {
-  const key = document.getElementById('admin-key-input').value.trim()
-  if (!key) return
+  const email    = document.getElementById('admin-email-input').value.trim()
+  const password = document.getElementById('admin-pw-input').value
+  if (!email || !password) return
   document.getElementById('login-error').style.display = 'none'
   try {
-    const r = await fetch(`${API}/admin/stats`, { headers: { 'x-admin-key': key } })
-    if (r.ok) {
-      adminKey = key
-      localStorage.setItem(ADMIN_KEY_STORE, key)
+    const r = await fetch(`${API}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    const d = await r.json()
+    if (r.ok && d.key) {
+      adminKey = d.key
+      localStorage.setItem(ADMIN_KEY_STORE, d.key)
       document.getElementById('login-overlay').style.display = 'none'
       fetchAll()
     } else {
@@ -649,6 +733,13 @@ async function doAdminLogin() {
   } catch {
     document.getElementById('login-error').style.display = 'block'
   }
+}
+async function doAdminForgotPassword() {
+  document.getElementById('forgot-msg').style.display = 'none'
+  try {
+    await fetch(`${API}/admin/forgot-password`, { method: 'POST' })
+  } catch {}
+  document.getElementById('forgot-msg').style.display = 'block'
 }
 function adminLogout() {
   if (!confirm('Sign out of admin dashboard?')) return
@@ -673,6 +764,7 @@ async function fetchAll() {
   buildWallets()              // mock (wallet /all uses JWT auth, not x-admin-key)
   buildCompliance()           // mock
   buildOverviewStaticParts()  // static feed + chart + top vendors
+  buildSponsors()             // real: /sponsors
 }
 
 // ── Overview (real data from /admin/stats) ────────────────────────
@@ -1234,6 +1326,157 @@ function buildCompliance() {
       <td>${pill(i<5?'complete':'in progress',i<5?'green':'amber')}</td>
     </tr>`
   }).join('')
+}
+
+// ── Sponsors ──────────────────────────────────────────────────────
+let _currentSponsorId = null
+
+async function buildSponsors() {
+  try {
+    const r = await fetch(`${API}/sponsors`, { headers: { 'x-admin-key': adminKey } })
+    const d = await r.json()
+    const sponsors = d.data || d.sponsors || []
+    renderSponsors(sponsors)
+  } catch(e) {
+    const tbl = document.getElementById('sponsors-tbl')
+    if (tbl) tbl.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:16px">Failed to load sponsors.</td></tr>'
+  }
+}
+
+function renderSponsors(sponsors) {
+  const total = sponsors.length
+  let totalCO2 = 0, totalOrders = 0
+  sponsors.forEach(s => { totalCO2 += s.totalCarbonEarnedKg || 0; totalOrders += s.totalOrdersSponsored || 0 })
+  setText('sp-total', total)
+  setText('sp-campaigns', '—')
+  setText('sp-carbon', totalCO2.toFixed(1))
+  setText('sp-orders', totalOrders)
+
+  const typeColor = { council:'blue', corporate:'purple', ngo:'teal', individual:'green' }
+  const tbl = document.getElementById('sponsors-tbl')
+  if (!tbl) return
+  tbl.innerHTML = sponsors.length ? sponsors.map(s => `
+    <tr style="cursor:pointer" onclick="loadSponsorDetail('${s._id}', ${JSON.stringify(s).replace(/'/g,'&#39;')})">
+      <td style="font-weight:600">${s.name || '—'}</td>
+      <td>${pill(s.orgType||'individual', typeColor[s.orgType]||'green')}</td>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--muted)">${s.contactEmail||'—'}</td>
+      <td style="font-family:var(--font-m)">£${(s.totalBudgetUsed||0).toFixed(2)}</td>
+      <td style="font-family:var(--font-m);color:var(--green)">${(s.totalCarbonEarnedKg||0).toFixed(2)} kg</td>
+      <td style="font-family:var(--font-m)">${s.totalOrdersSponsored||0}</td>
+      <td>${pill(s.isActive?'active':'inactive', s.isActive?'green':'gray')}</td>
+      <td><button class="btn" onclick="event.stopPropagation();copyTokenLink('${location.origin}/api/sponsors/${s._id}/carbon?token=${s.accessToken||''}')" style="font-size:11px;padding:4px 10px;background:var(--ink3);border:1px solid var(--border);color:var(--muted);border-radius:6px;cursor:pointer">Copy Token</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px">No sponsors yet. Click + New Sponsor to add one.</td></tr>'
+}
+
+function loadSponsorDetail(id, s) {
+  _currentSponsorId = id
+  document.getElementById('sponsor-detail').style.display = 'block'
+  setText('sp-detail-name', `${s.name} — Details`)
+  setText('sp-detail-budget', '£' + (s.totalBudgetCommitted||0).toFixed(2))
+  setText('sp-detail-used',   '£' + (s.totalBudgetUsed||0).toFixed(2))
+  setText('sp-detail-co2',    (s.totalCarbonEarnedKg||0).toFixed(2) + ' kg')
+  setText('sp-detail-ord',    s.totalOrdersSponsored||0)
+  const tokenEl = document.getElementById('sp-detail-token')
+  if (tokenEl) tokenEl.textContent = `${location.origin}/api/sponsors/${id}/carbon?token=${s.accessToken||''}`
+  fetchCampaigns(id)
+  document.getElementById('sponsor-detail').scrollIntoView({ behavior:'smooth' })
+}
+
+async function fetchCampaigns(sponsorId) {
+  const tbl = document.getElementById('campaigns-tbl')
+  if (tbl) tbl.innerHTML = '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:12px"><div class="spin"></div> Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/sponsors/${sponsorId}/campaigns`, { headers: { 'x-admin-key': adminKey } })
+    const d = await r.json()
+    renderCampaigns(d.data || d.campaigns || [])
+  } catch(e) {
+    if (tbl) tbl.innerHTML = '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:12px">Failed to load campaigns.</td></tr>'
+  }
+}
+
+function renderCampaigns(camps) {
+  const tbl = document.getElementById('campaigns-tbl')
+  if (!tbl) return
+  tbl.innerHTML = camps.length ? camps.map(c => {
+    const exp = c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-GB') : '—'
+    const valDisplay = c.voucherType === 'percentage' ? `${c.voucherValue||0}%` : `£${c.voucherValue||0}`
+    return `<tr>
+      <td style="font-weight:600">${c.name||'—'}</td>
+      <td>${pill(c.voucherType||'free','teal')}</td>
+      <td style="font-family:var(--font-m)">${valDisplay}</td>
+      <td style="font-family:var(--font-m)">${c.totalVouchersGenerated||0}</td>
+      <td style="font-family:var(--font-m)">${c.totalVouchersRedeemed||0}</td>
+      <td style="font-family:var(--font-m);color:var(--green)">${(c.carbonEarnedKg||0).toFixed(2)} kg</td>
+      <td style="color:var(--muted)">${exp}</td>
+      <td>${pill(c.isActive?'active':'inactive',c.isActive?'green':'gray')}</td>
+      <td><button class="btn" onclick="promptGenerateVouchers('${c._id}')" style="font-size:11px;padding:4px 10px;background:var(--ink3);border:1px solid var(--border);color:var(--teal);border-radius:6px;cursor:pointer">Gen Codes</button></td>
+    </tr>`
+  }).join('')
+  : '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:16px">No campaigns yet.</td></tr>'
+}
+
+function showCreateSponsorModal() {
+  const name = prompt('Organisation name:')
+  if (!name) return
+  const type = prompt('Type (council / corporate / ngo / individual):', 'individual') || 'individual'
+  const contactEmail = prompt('Contact email:')
+  if (!contactEmail) return
+  const contactName = prompt('Contact name (optional):') || ''
+  fetch(`${API}/sponsors`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+    body: JSON.stringify({ name, orgType: type, contactName, contactEmail })
+  }).then(r => r.json()).then(d => {
+    if (d.success) { alert('Sponsor created!'); buildSponsors() }
+    else alert(d.message || 'Error creating sponsor.')
+  }).catch(() => alert('Network error.'))
+}
+
+function toggleCampaignForm() {
+  const f = document.getElementById('campaign-form')
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none'
+}
+
+async function submitCreateCampaign() {
+  if (!_currentSponsorId) return
+  const name   = document.getElementById('cf-name')?.value || ''
+  const type   = document.getElementById('cf-type')?.value || 'free'
+  const val    = parseFloat(document.getElementById('cf-value')?.value) || 0
+  const min    = parseFloat(document.getElementById('cf-min')?.value) || 0
+  const budget = parseFloat(document.getElementById('cf-budget')?.value) || 0
+  const exp    = document.getElementById('cf-expires')?.value
+  const msg    = document.getElementById('cf-msg')
+  if (!name) { if(msg){msg.textContent='Name required';msg.style.color='var(--red)';msg.style.display='block'} return }
+  if (!budget) { if(msg){msg.textContent='Budget required';msg.style.color='var(--red)';msg.style.display='block'} return }
+  const body = { name, voucherType:type, voucherValue:val, minOrderValue:min, budgetAllocated:budget, carbonGoesToSponsor:true }
+  if (exp) body.expiresAt = exp
+  try {
+    const r = await fetch(`${API}/sponsors/${_currentSponsorId}/campaigns`, {
+      method:'POST', headers:{'Content-Type':'application/json','x-admin-key':adminKey}, body:JSON.stringify(body)
+    })
+    const d = await r.json()
+    if (d.success) { toggleCampaignForm(); fetchCampaigns(_currentSponsorId) }
+    else { if(msg){msg.textContent=d.message||'Error';msg.style.color='var(--red)';msg.style.display='block'} }
+  } catch(e) { if(msg){msg.textContent='Network error';msg.style.color='var(--red)';msg.style.display='block'} }
+}
+
+async function promptGenerateVouchers(campaignId) {
+  if (!_currentSponsorId) return
+  const n = parseInt(prompt('How many voucher codes? (max 500):') || '0')
+  if (!n || n < 1 || n > 500) { alert('Enter a number between 1 and 500.'); return }
+  try {
+    const r = await fetch(`${API}/sponsors/${_currentSponsorId}/campaigns/${campaignId}/generate`, {
+      method:'POST', headers:{'Content-Type':'application/json','x-admin-key':adminKey}, body:JSON.stringify({count:n})
+    })
+    const d = await r.json()
+    if (d.success) { alert(`Generated ${n} codes!`); fetchCampaigns(_currentSponsorId) }
+    else alert(d.message || 'Error generating codes.')
+  } catch(e) { alert('Network error.') }
+}
+
+function copyTokenLink(url) {
+  navigator.clipboard.writeText(url).then(() => alert('Token link copied to clipboard!'))
 }
 
 // ── Auto-refresh feed ─────────────────────────────────────────────
