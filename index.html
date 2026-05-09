@@ -198,6 +198,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
     <div class="nav-sec">Growth</div>
     <div class="nav-item" onclick="go('livelit',this)"><span class="nav-icon">🔴</span>LiveLit House</div>
     <div class="nav-item" onclick="go('outreach',this)"><span class="nav-icon">📣</span>Outreach</div>
+    <div class="nav-item" onclick="go('marketing',this)"><span class="nav-icon">🎬</span>Marketing</div>
     <div class="nav-item" onclick="go('waitlist',this)"><span class="nav-icon">⏳</span>Waitlist</div>
     <div class="nav-sec">Sustainability</div>
     <div class="nav-item" onclick="go('carbon',this)"><span class="nav-icon">🌿</span>Carbon</div>
@@ -409,6 +410,26 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
   <div class="panel">
     <div class="panel-hd"><div class="panel-title">Discovered Creators — Pending Review</div><button class="btn btn-p">Run Discovery</button></div>
     <div class="tw"><table><thead><tr><th>Creator</th><th>Platform</th><th>AI Score</th><th>Location</th><th>Followers</th><th>Status</th><th>Action</th></tr></thead><tbody id="outreach-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ MARKETING ═══════════════ -->
+<div class="page" id="p-marketing">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="stat-label">Posts (30 days)</div><div class="stat-val" id="m-30d">--</div></div>
+    <div class="stat"><div class="stat-label">Total Views</div><div class="stat-val" id="m-views" style="color:var(--green)">--</div></div>
+    <div class="stat"><div class="stat-label">Total Likes</div><div class="stat-val" id="m-likes" style="color:var(--amber)">--</div></div>
+    <div class="stat"><div class="stat-label">Platforms Active</div><div class="stat-val" id="m-platforms" style="color:var(--teal)">--</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-hd">
+      <div class="panel-title">Automated Posts (TikTok, LinkedIn, X, Facebook)</div>
+      <button class="panel-act" onclick="buildMarketing()">↻ Refresh</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Platform</th><th>Posted</th><th>Content</th><th>Views</th><th>Likes</th><th>Status</th><th>Link</th></tr></thead>
+      <tbody id="marketing-tbl"></tbody>
+    </table></div>
   </div>
 </div>
 
@@ -664,7 +685,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 const API = 'https://yumcycle-backend-new-lastest-now.onrender.com/api'
 const SITE = 'https://dev.yumcycle.com'
 const ADMIN_KEY_STORE = 'yc_admin_key'
-const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',analytics:'Analytics',settings:'Settings',website:'Website'}
+const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',marketing:'Marketing Automation',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',analytics:'Analytics',settings:'Settings',website:'Website'}
 
 // ── State ────────────────────────────────────────────────────────
 let adminKey = localStorage.getItem(ADMIN_KEY_STORE) || ''
@@ -687,6 +708,7 @@ function go(id, navEl) {
   if (id === 'customers')  buildCustomers()
   if (id === 'deliveries') buildDeliveries()
   if (id === 'waitlist')   buildWaitlist()
+  if (id === 'marketing')  buildMarketing()
   if (id === 'website')    buildWebsite()
 }
 function ftab(el) {
@@ -1235,6 +1257,42 @@ async function buildWaitlist() {
       : '<tr><td colspan="6" class="loading" style="color:var(--muted)">No waitlist entries yet</td></tr>'
   } catch {
     document.getElementById('waitlist-tbl').innerHTML = '<tr><td colspan="6" class="loading" style="color:var(--red)">Failed to load waitlist.</td></tr>'
+  }
+}
+
+async function buildMarketing() {
+  document.getElementById('marketing-tbl').innerHTML = '<tr><td colspan="7" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const [statsRes, postsRes] = await Promise.all([
+      fetch(`${API}/marketing/stats`, { headers: { 'x-admin-key': adminKey } }),
+      fetch(`${API}/marketing/posts?limit=100`, { headers: { 'x-admin-key': adminKey } }),
+    ])
+    if (!statsRes.ok || !postsRes.ok) throw new Error()
+    const stats = (await statsRes.json()).data || {}
+    const posts = (await postsRes.json()).data || []
+
+    const last30 = stats.last_30_days || []
+    const totals30 = last30.reduce((a, p) => ({ posts: a.posts + p.posts, views: a.views + p.views, likes: a.likes + p.likes }), { posts: 0, views: 0, likes: 0 })
+    setText('m-30d',       totals30.posts)
+    setText('m-views',     fmt(totals30.views))
+    setText('m-likes',     fmt(totals30.likes))
+    setText('m-platforms', last30.length)
+
+    const platformColor = { tiktok: 'purple', linkedin: 'blue', x: 'gray', facebook: 'blue', instagram: 'amber' }
+    const statusColor   = { published: 'green', pending: 'amber', failed: 'red' }
+    document.getElementById('marketing-tbl').innerHTML = posts.length
+      ? posts.map(p => `<tr>
+          <td>${pill(p.platform, platformColor[p.platform] || 'gray')}</td>
+          <td style="font-size:12px;color:var(--muted)">${fmtDate(p.posted_at)}</td>
+          <td style="max-width:340px;white-space:normal;font-size:12px;color:var(--muted)">${(p.script || p.video_name || '—').slice(0, 140)}${(p.script || '').length > 140 ? '…' : ''}</td>
+          <td style="font-family:var(--font-m)">${fmt(p.metrics?.views || 0)}</td>
+          <td style="font-family:var(--font-m)">${fmt(p.metrics?.likes || 0)}</td>
+          <td>${pill(p.status, statusColor[p.status] || 'gray')}</td>
+          <td>${p.post_url ? `<a href="${p.post_url}" target="_blank" style="color:var(--teal);text-decoration:none">View →</a>` : '—'}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="7" class="loading" style="color:var(--muted)">No marketing posts yet — start your n8n pipeline.</td></tr>'
+  } catch {
+    document.getElementById('marketing-tbl').innerHTML = '<tr><td colspan="7" class="loading" style="color:var(--red)">Failed to load marketing posts.</td></tr>'
   }
 }
 
