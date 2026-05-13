@@ -660,9 +660,21 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 
 <!-- ═══════════════ SETTINGS ═══════════════ -->
 <div class="page" id="p-settings">
+  <!-- Change password card -->
+  <div class="panel" style="max-width:600px;padding:24px;margin-bottom:20px">
+    <div class="panel-title" style="margin-bottom:6px">Change admin password</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Updates the password used to sign into this dashboard. Active sessions on other devices will keep working — sign them out manually if needed.</div>
+    <input id="cur-pw-input" type="password" placeholder="Current password" autocomplete="current-password" style="width:100%;background:var(--ink3);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-size:14px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px" />
+    <input id="set-new-pw-input" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password" style="width:100%;background:var(--ink3);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-size:14px;color:var(--text);font-family:inherit;outline:none;margin-bottom:10px" />
+    <input id="set-confirm-pw-input" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;background:var(--ink3);border:1px solid var(--border);border-radius:10px;padding:13px 16px;font-size:14px;color:var(--text);font-family:inherit;outline:none;margin-bottom:12px" onkeydown="if(event.key==='Enter')doAdminChangePassword()" />
+    <div id="change-pw-err" style="font-size:12px;color:var(--red);margin-bottom:10px;display:none"></div>
+    <div id="change-pw-ok"  style="font-size:12px;color:#4ade80;margin-bottom:10px;display:none"></div>
+    <button class="login-submit" style="background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px 24px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer" onclick="doAdminChangePassword()">Update password</button>
+  </div>
+
   <div class="panel" style="max-width:600px;padding:24px">
     <div class="panel-title" style="margin-bottom:20px">Platform Settings</div>
-    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Backend URL</span><span style="font-size:13px;font-weight:500;color:var(--green)">https://yumcycle-backend-new-lastest-now.onrender.com</span></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Backend URL</span><span style="font-size:13px;font-weight:500;color:var(--green)">https://api.yumcycle.com</span></div>
   <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Company</span><span style="font-size:13px;font-weight:500;color:var(--text)">Grabnex Ecommerce Ltd (Co. No. 15288512)</span></div>
   <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Email</span><span style="font-size:13px;font-weight:500;color:var(--text)">hello@yumcycle.com</span></div>
   <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">Cities</span><span style="font-size:13px;font-weight:500;color:var(--text)">Leeds &amp; Hull</span></div>
@@ -847,6 +859,48 @@ function adminLogout() {
   localStorage.removeItem(ADMIN_KEY_STORE)
   adminKey = ''
   location.reload()
+}
+
+async function doAdminChangePassword() {
+  const currentPassword = document.getElementById('cur-pw-input').value
+  const newPassword     = document.getElementById('set-new-pw-input').value
+  const confirmPassword = document.getElementById('set-confirm-pw-input').value
+  const errEl = document.getElementById('change-pw-err')
+  const okEl  = document.getElementById('change-pw-ok')
+  errEl.style.display = 'none'
+  okEl.style.display  = 'none'
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    errEl.textContent = 'All three fields are required.'
+    errEl.style.display = 'block'; return
+  }
+  if (newPassword.length < 8) {
+    errEl.textContent = 'New password must be at least 8 characters.'
+    errEl.style.display = 'block'; return
+  }
+  if (newPassword !== confirmPassword) {
+    errEl.textContent = 'New passwords do not match.'
+    errEl.style.display = 'block'; return
+  }
+  try {
+    const r = await fetch(`${API}/admin/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    })
+    const d = await r.json()
+    if (!r.ok) {
+      errEl.textContent = d.message || 'Failed to update password.'
+      errEl.style.display = 'block'; return
+    }
+    okEl.textContent = 'Password updated. Use the new password next time you sign in.'
+    okEl.style.display = 'block'
+    document.getElementById('cur-pw-input').value = ''
+    document.getElementById('set-new-pw-input').value = ''
+    document.getElementById('set-confirm-pw-input').value = ''
+  } catch {
+    errEl.textContent = 'Network error. Try again.'
+    errEl.style.display = 'block'
+  }
 }
 
 // ── Main fetch ────────────────────────────────────────────────────
