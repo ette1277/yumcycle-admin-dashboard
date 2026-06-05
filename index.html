@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>YumCycle Admin Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -88,6 +89,12 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 .feed-title{font-size:13px;font-weight:500}
 .feed-time{font-size:11px;color:var(--muted);margin-top:3px}
 
+/* ── Analytics tabs ── */
+.an-tab{font-family:var(--font-m);font-size:11px;padding:5px 10px;border:1px solid rgba(0,0,0,.12);background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .15s}
+.an-tab:hover{border-color:var(--green)}
+.an-tab.on{background:var(--green);color:#fff;border-color:var(--green)}
+@keyframes anpulse{0%,100%{opacity:1}50%{opacity:.35}}
+#an-live{animation:anpulse 1.6s ease-in-out infinite}
 /* ── Carbon chart ── */
 .bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding:16px 20px}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
@@ -261,13 +268,42 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
     <div class="stat"><div class="stat-label">Active Riders</div><div class="stat-val" id="ov-riders" style="color:var(--purple)">--</div><div class="stat-sub">Online now</div></div>
     <div class="stat"><div class="stat-label">LiveLit Creators</div><div class="stat-val" id="ov-creators" style="color:var(--red)">--</div><div class="stat-sub">In network</div></div>
   </div>
+
+  <!-- Analytics (real, time-bucketed from /admin/analytics) -->
+  <div class="panel" id="an-panel" style="margin-bottom:20px">
+    <div class="panel-hd" style="flex-wrap:wrap;gap:10px">
+      <div class="panel-title">Analytics <span id="an-live" style="font-size:11px;color:var(--green);margin-left:8px">● LIVE</span></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+        <div id="an-metric-tabs" style="display:flex;gap:4px">
+          <button class="an-tab on" data-metric="orders" onclick="setAnMetric('orders')">Orders</button>
+          <button class="an-tab" data-metric="revenue" onclick="setAnMetric('revenue')">Revenue</button>
+          <button class="an-tab" data-metric="co2" onclick="setAnMetric('co2')">CO₂</button>
+          <button class="an-tab" data-metric="newCustomers" onclick="setAnMetric('newCustomers')">Signups</button>
+        </div>
+        <div id="an-gran-tabs" style="display:flex;gap:4px">
+          <button class="an-tab" data-gran="hour" onclick="setAnGran('hour')">Hour</button>
+          <button class="an-tab on" data-gran="day" onclick="setAnGran('day')">Day</button>
+          <button class="an-tab" data-gran="week" onclick="setAnGran('week')">Week</button>
+          <button class="an-tab" data-gran="month" onclick="setAnGran('month')">Month</button>
+        </div>
+      </div>
+    </div>
+    <div class="stats" id="an-cards" style="grid-template-columns:repeat(4,1fr);margin:14px 0">
+      <div class="stat"><div class="stat-label">Avg Order Value</div><div class="stat-val" id="an-aov" style="color:var(--amber)">--</div><div class="stat-sub" id="an-aov-sub">this period</div></div>
+      <div class="stat"><div class="stat-label">Completion Rate</div><div class="stat-val" id="an-comp" style="color:var(--green)">--</div><div class="stat-sub">paid / all orders</div></div>
+      <div class="stat"><div class="stat-label">New Customers</div><div class="stat-val" id="an-newcust" style="color:var(--blue)">--</div><div class="stat-sub" id="an-newcust-sub">this period</div></div>
+      <div class="stat"><div class="stat-label">Period Revenue</div><div class="stat-val" id="an-rev" style="color:var(--teal)">--</div><div class="stat-sub" id="an-period-sub">this period</div></div>
+    </div>
+    <div style="position:relative;height:240px"><canvas id="an-chart"></canvas></div>
+  </div>
+
   <div class="two">
     <div class="panel">
       <div class="panel-hd"><div class="panel-title">Recent Orders</div><button class="panel-act" onclick="go('orders',null)">View all →</button></div>
       <div class="tw"><table><thead><tr><th>ID</th><th>Customer</th><th>Vendor</th><th>Amount</th><th>Status</th><th>CO₂</th></tr></thead><tbody id="ov-orders-tbl"><tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
     </div>
     <div class="panel">
-      <div class="panel-hd"><div class="panel-title">Live Activity</div><span style="font-size:11px;color:var(--muted)">Auto-refresh 8s</span></div>
+      <div class="panel-hd"><div class="panel-title">Live Activity</div><span style="font-size:11px;color:var(--muted)">Auto-refresh 25s</span></div>
       <div id="ov-feed"></div>
     </div>
   </div>
@@ -277,8 +313,8 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
       <div id="ov-top-vendors"></div>
     </div>
     <div class="panel">
-      <div class="panel-hd"><div class="panel-title">CO₂ Saved — Monthly (kg)</div><span id="ov-co2-total" style="font-family:var(--font-m);font-size:12px;color:var(--teal)">--</span></div>
-      <div class="bars" id="ov-chart"></div>
+      <div class="panel-hd"><div class="panel-title">Top Vendors by Revenue</div><span style="font-family:var(--font-m);font-size:12px;color:var(--muted)">selected period</span></div>
+      <div id="an-topsellers"><div style="padding:16px;color:var(--muted);font-size:13px">Loading…</div></div>
     </div>
   </div>
 </div>
@@ -906,6 +942,7 @@ async function doAdminChangePassword() {
 // ── Main fetch ────────────────────────────────────────────────────
 async function fetchAll() {
   buildOverviewStats()        // real: /admin/stats
+  buildAnalytics()            // real: /admin/analytics
   fetchCarbonLeaderboard()    // real: /carbon/leaderboard (public, no auth)
   buildVendors()              // real: /admin/sellers
   buildRiders()               // real: /admin/riders
@@ -947,29 +984,80 @@ async function buildOverviewStats() {
         <td>${pill(o.status, statusColor[o.status]||'gray')}</td>
         <td style="font-family:var(--font-m);color:var(--teal)">${(o.carbonCredit||0).toFixed(2)} kg</td>
       </tr>`).join('')
+      // Real Live Activity feed from the same recent-orders data
+      const _ic = {pending:'🟡',accepted:'🔵',preparing:'🔵',ready:'🟢',completed:'✅',delivered:'✅',cancelled:'🔴',rejected:'🔴'}
+      const _feed = document.getElementById('ov-feed')
+      if (_feed) _feed.innerHTML = s.recentOrders.slice(0,10).map(o=>`
+        <div class="feed-item">
+          <div class="feed-dot" style="background:rgba(45,155,78,.1)">${_ic[o.status]||'🛒'}</div>
+          <div class="feed-body"><div class="feed-title">Order #${o.orderId} — ${o.customerName} · £${(o.total||0).toFixed(2)}</div><div class="feed-time">${o.sellerName} · ${o.status}</div></div>
+        </div>`).join('')
     }
   } catch {
     // Keep "--" placeholders — silently fail overview stats
   }
 }
 
+// ── Analytics (real, time-bucketed from /admin/analytics) ─────────
+let _anChart = null, _anGran = 'day', _anMetric = 'orders'
+const AN_META = {
+  orders:       { label: 'Orders',         color: '#2D9B4E', fmt: v => v },
+  revenue:      { label: 'Revenue (£)',    color: '#F5A623', fmt: v => '£' + (+v||0).toFixed(0) },
+  co2:          { label: 'CO₂ saved (kg)', color: '#1ABCB0', fmt: v => (+v||0) + ' kg' },
+  newCustomers: { label: 'New customers',  color: '#3B82F6', fmt: v => v },
+}
+const AN_PERIOD = { hour:'last 24 hours', day:'last 30 days', week:'last 12 weeks', month:'last 12 months' }
+function setAnGran(g){ _anGran=g; document.querySelectorAll('#an-gran-tabs .an-tab').forEach(b=>b.classList.toggle('on', b.dataset.gran===g)); buildAnalytics() }
+function setAnMetric(m){ _anMetric=m; document.querySelectorAll('#an-metric-tabs .an-tab').forEach(b=>b.classList.toggle('on', b.dataset.metric===m)); buildAnalytics() }
+
+async function buildAnalytics() {
+  try {
+    const r = await fetch(`${API}/admin/analytics?granularity=${_anGran}`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = (await r.json()).data || {}
+    const s = d.summary || {}
+    setText('an-aov',     '£' + (s.aov||0).toFixed(2))
+    setText('an-comp',    (s.completionRate||0).toFixed(1) + '%')
+    setText('an-newcust', fmt(s.newCustomers||0))
+    setText('an-rev',     '£' + (s.revenue||0).toLocaleString('en-GB',{maximumFractionDigits:0}))
+    const per = AN_PERIOD[_anGran] || ''
+    setText('an-aov-sub', per); setText('an-newcust-sub', per); setText('an-period-sub', per)
+    const ts = document.getElementById('an-topsellers')
+    if (ts) ts.innerHTML = (d.topSellers && d.topSellers.length)
+      ? d.topSellers.map((t,i)=>`<div class="vrow"><div class="vav">${i+1}</div>
+          <div><div class="vname">${t.name}</div><div class="vsub">${t.orders} orders</div></div>
+          <div class="vstat"><div class="vrev">£${(t.revenue||0).toFixed(2)}</div></div></div>`).join('')
+      : '<div style="padding:16px;color:var(--muted);font-size:13px">No sales in this period yet.</div>'
+    renderAnChart(d.series || [])
+  } catch { /* keep placeholders on error */ }
+}
+
+function renderAnChart(series) {
+  const cv = document.getElementById('an-chart')
+  if (!cv || typeof Chart === 'undefined') return
+  const meta = AN_META[_anMetric] || AN_META.orders
+  const labels = series.map(p => p.label)
+  const data = series.map(p => +p[_anMetric] || 0)
+  if (_anChart) _anChart.destroy()
+  const ctx = cv.getContext('2d')
+  const grad = ctx.createLinearGradient(0, 0, 0, 240)
+  grad.addColorStop(0, meta.color + '55'); grad.addColorStop(1, meta.color + '00')
+  _anChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: meta.label, data, borderColor: meta.color, backgroundColor: grad, fill: true, tension: 0.35, borderWidth: 2, pointRadius: series.length > 40 ? 0 : 3, pointBackgroundColor: meta.color }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => meta.label + ': ' + meta.fmt(c.parsed.y) } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, color: '#9aa', font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { color: '#9aa', font: { size: 10 }, precision: 0 } },
+      },
+    },
+  })
+}
+
 function buildOverviewStaticParts() {
-  // Feed (static demo events)
-  const events = [
-    {i:'🛒',txt:'New order — Jerk Chicken at Spice Route · £8.40',time:'2 min ago'},
-    {i:'👤',txt:'New customer — Leeds LS6',time:'5 min ago'},
-    {i:'🔴',txt:'@chefaisha went LIVE — 8 orders placed',time:'12 min ago'},
-    {i:'💳',txt:'Payout £124.50 to The Curry House',time:'18 min ago'},
-    {i:'🛵',txt:'New rider approved — Hull HU1',time:'25 min ago'},
-    {i:'🛒',txt:'Order completed — Green Bowl Hull',time:'34 min ago'},
-    {i:'🏪',txt:"New vendor — Mama's Kitchen approved",time:'1 hr ago'},
-    {i:'💳',txt:'Carbon credits redeemed — £3.50 discount',time:'1 hr ago'},
-  ]
-  document.getElementById('ov-feed').innerHTML = events.map(e=>`
-    <div class="feed-item">
-      <div class="feed-dot" style="background:rgba(45,155,78,.1)">${e.i}</div>
-      <div class="feed-body"><div class="feed-title">${e.txt}</div><div class="feed-time">${e.time}</div></div>
-    </div>`).join('')
+  // (Static demo feed removed — Live Activity is now populated from real recent orders in buildOverviewStats)
 
   // Top vendors (use approved sellers cache if loaded, else static)
   const approved = allVendorsCache.filter(s => s.sellerProfile?.approvalStatus === 'approved').slice(0,4)
@@ -991,15 +1079,7 @@ function buildOverviewStaticParts() {
         <div class="vstat"><div class="vrev">${v.r}</div><div class="vord">${v.o} orders</div></div></div>`).join('')
   }
 
-  // CO₂ bar chart (static monthly data)
-  const months = [{m:'Nov',v:420},{m:'Dec',v:510},{m:'Jan',v:580},{m:'Feb',v:720},{m:'Mar',v:890},{m:'Apr',v:727}]
-  const max = Math.max(...months.map(m=>m.v))
-  document.getElementById('ov-chart').innerHTML = months.map((m,i)=>`
-    <div class="bar-col">
-      <div class="bar-val">${m.v}</div>
-      <div class="bar-fill ${i===months.length-1?'cur':''}" style="height:${Math.max(12,m.v/max*80)}px"></div>
-      <div class="bar-label">${m.m}</div>
-    </div>`).join('')
+  // (Static monthly CO₂ bar chart removed — replaced by the real Analytics chart + Top Vendors panel)
 }
 
 // ── Carbon leaderboard (public, no auth needed) ───────────────────
@@ -1679,23 +1759,10 @@ const feedEvents = [
   '🌿 CO₂ credited to 3 wallets',
   '💳 Carbon credits redeemed — £3.50 discount',
 ]
+// Auto-refresh: re-pull real overview stats + analytics every 25s (real-time-ish)
 setInterval(() => {
-  const feed = document.getElementById('ov-feed')
-  if (!feed) return
-  const item = document.createElement('div')
-  item.className = 'feed-item'
-  item.style.opacity = '0'
-  item.style.transition = 'opacity .4s'
-  item.innerHTML = `
-    <div class="feed-dot" style="background:rgba(45,155,78,.1)">⚡</div>
-    <div class="feed-body">
-      <div class="feed-title">${ra(feedEvents)}</div>
-      <div class="feed-time">just now</div>
-    </div>`
-  feed.insertBefore(item, feed.firstChild)
-  requestAnimationFrame(() => item.style.opacity = '1')
-  if (feed.children.length > 10) feed.removeChild(feed.lastChild)
-}, 8000)
+  if (adminKey) { buildOverviewStats(); buildAnalytics() }
+}, 25000)
 
 // ── Init ──────────────────────────────────────────────────────────
 const urlResetToken = new URLSearchParams(location.search).get('reset_token')
