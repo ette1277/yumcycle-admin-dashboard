@@ -227,6 +227,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
     <div class="nav-item" onclick="go('compliance',this)"><span class="nav-icon">📋</span>Compliance</div>
     <div class="nav-sec">Sponsorship</div>
     <div class="nav-item" onclick="go('sponsors',this)"><span class="nav-icon">🤝</span>Sponsors</div>
+    <div class="nav-item" onclick="go('vouchers',this)"><span class="nav-icon">🎟️</span>Vouchers</div>
     <div class="nav-sec">System</div>
     <div class="nav-item" onclick="go('analytics',this)"><span class="nav-icon">📈</span>Analytics</div>
     <div class="nav-item" onclick="go('settings',this)"><span class="nav-icon">⚙️</span>Settings</div>
@@ -644,6 +645,43 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
   </div>
 </div>
 
+<!-- ═══════════════ VOUCHERS ═══════════════ -->
+<div class="page" id="p-vouchers">
+  <!-- Create voucher -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-hd">
+      <div class="panel-title">🎟️ Create Voucher</div>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Code</label><input id="vf-code" placeholder="REVIEW100" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;text-transform:uppercase"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Type</label><select id="vf-type" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"><option value="percentage">% Off</option><option value="fixed">£ Off</option></select></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Value (£ or %)</label><input id="vf-value" type="number" min="0" placeholder="100" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Max Uses (blank = ∞)</label><input id="vf-max" type="number" min="1" placeholder="10" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Min Order (£)</label><input id="vf-min" type="number" min="0" placeholder="0" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Expires (blank = never)</label><input id="vf-expires" type="date" style="width:100%;background:var(--ink2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px"></div>
+      </div>
+      <div id="vf-msg" style="font-size:12px;margin-bottom:8px;display:none"></div>
+      <button class="btn btn-g" onclick="submitCreateVoucher()">Create Voucher</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:10px">Tip: for App Review use code <b>REVIEW100</b>, type <b>% Off</b>, value <b>100</b>.</span>
+    </div>
+  </div>
+
+  <!-- Existing vouchers -->
+  <div class="panel">
+    <div class="panel-hd">
+      <div class="panel-title">All Vouchers</div>
+      <button class="btn" onclick="buildVouchers()" style="background:var(--ink2);color:var(--muted);border:1px solid var(--border)">↻ Refresh</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Used</th><th>Min Order</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="vouchers-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════ ANALYTICS ═══════════════ -->
 <div class="page" id="p-analytics">
   <div class="stats">
@@ -717,7 +755,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 const API = 'https://api.yumcycle.com/api'
 const SITE = 'https://dev.yumcycle.com'
 const ADMIN_KEY_STORE = 'yc_admin_key'
-const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',marketing:'Marketing Automation',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',analytics:'Analytics',settings:'Settings',website:'Website'}
+const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',marketing:'Marketing Automation',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',vouchers:'Vouchers',analytics:'Analytics',settings:'Settings',website:'Website'}
 
 // ── State ────────────────────────────────────────────────────────
 let adminKey = localStorage.getItem(ADMIN_KEY_STORE) || ''
@@ -742,6 +780,7 @@ function go(id, navEl) {
   if (id === 'waitlist')   buildWaitlist()
   if (id === 'marketing')  buildMarketing()
   if (id === 'website')    buildWebsite()
+  if (id === 'vouchers')   buildVouchers()
 }
 function ftab(el) {
   el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
@@ -1668,6 +1707,92 @@ async function promptGenerateVouchers(campaignId) {
 
 function copyTokenLink(url) {
   navigator.clipboard.writeText(url).then(() => alert('Token link copied to clipboard!'))
+}
+
+// ── Vouchers ──────────────────────────────────────────────────────
+async function buildVouchers() {
+  const tb = document.getElementById('vouchers-tbl')
+  if (!tb) return
+  tb.innerHTML = '<tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/vouchers`, { headers: { 'x-admin-key': adminKey } })
+    const d = await r.json()
+    const list = d.data || d.vouchers || []
+    if (!list.length) { tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:16px">No vouchers yet — create one above.</td></tr>'; return }
+    tb.innerHTML = list.map(v => {
+      const val = v.type === 'percentage' ? `${v.value}%` : `£${v.value}`
+      const used = `${v.usedCount || 0}${v.maxUses ? ' / ' + v.maxUses : ''}`
+      const exp  = v.expiresAt ? fmtDate(v.expiresAt) : 'Never'
+      const status = v.isActive ? pill('Active','green') : pill('Disabled','red')
+      return `<tr>
+        <td style="font-family:var(--font-m);font-weight:700">${v.code}</td>
+        <td>${v.type === 'percentage' ? '% Off' : '£ Off'}</td>
+        <td style="font-family:var(--font-m)">${val}</td>
+        <td style="font-family:var(--font-m)">${used}</td>
+        <td style="font-family:var(--font-m)">£${v.minOrderValue || 0}</td>
+        <td>${exp}</td>
+        <td>${status}</td>
+        <td>
+          <button class="btn" onclick="toggleVoucherRow('${v._id}')" style="font-size:11px;padding:4px 10px;background:var(--ink3);border:1px solid var(--border);color:var(--teal);border-radius:6px;cursor:pointer">${v.isActive ? 'Disable' : 'Enable'}</button>
+          <button class="btn" onclick="deleteVoucherRow('${v._id}','${v.code}')" style="font-size:11px;padding:4px 10px;background:var(--ink3);border:1px solid var(--border);color:var(--red,#e06666);border-radius:6px;cursor:pointer">Delete</button>
+        </td>
+      </tr>`
+    }).join('')
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="8" style="color:var(--red,#e06666);text-align:center;padding:16px">Failed to load vouchers.</td></tr>'
+  }
+}
+
+async function submitCreateVoucher() {
+  const msg  = document.getElementById('vf-msg')
+  const show = (text, ok) => { msg.style.display = 'block'; msg.style.color = ok ? 'var(--green)' : 'var(--red,#e06666)'; msg.textContent = text }
+  const code  = document.getElementById('vf-code').value.trim().toUpperCase()
+  const type  = document.getElementById('vf-type').value
+  const value = document.getElementById('vf-value').value
+  const max   = document.getElementById('vf-max').value
+  const min   = document.getElementById('vf-min').value
+  const exp   = document.getElementById('vf-expires').value
+  if (!code || value === '') { show('Code and value are required.', false); return }
+  const body = { code, type, value: Number(value) }
+  if (max) body.maxUses = Number(max)
+  if (min) body.minOrderValue = Number(min)
+  if (exp) body.expiresAt = exp
+  try {
+    const r = await fetch(`${API}/vouchers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify(body),
+    })
+    const d = await r.json()
+    if (r.ok && d.success !== false) {
+      show(`Voucher ${code} created ✓`, true)
+      document.getElementById('vf-code').value = ''
+      document.getElementById('vf-value').value = ''
+      document.getElementById('vf-max').value = ''
+      buildVouchers()
+    } else {
+      show(d.message || 'Could not create voucher.', false)
+    }
+  } catch (e) { show('Network error.', false) }
+}
+
+async function toggleVoucherRow(id) {
+  try {
+    const r = await fetch(`${API}/vouchers/${id}/toggle`, { method: 'PATCH', headers: { 'x-admin-key': adminKey } })
+    const d = await r.json()
+    if (r.ok && d.success !== false) buildVouchers()
+    else alert(d.message || 'Could not update voucher.')
+  } catch (e) { alert('Network error.') }
+}
+
+async function deleteVoucherRow(id, code) {
+  if (!confirm(`Delete voucher ${code}? This cannot be undone.`)) return
+  try {
+    const r = await fetch(`${API}/vouchers/${id}`, { method: 'DELETE', headers: { 'x-admin-key': adminKey } })
+    const d = await r.json()
+    if (r.ok && d.success !== false) buildVouchers()
+    else alert(d.message || 'Could not delete voucher.')
+  } catch (e) { alert('Network error.') }
 }
 
 // ── Auto-refresh feed ─────────────────────────────────────────────
