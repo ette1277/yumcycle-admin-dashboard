@@ -1,0 +1,12 @@
+# Secrets / credentials — NEVER commit these
+play-service-account.json
+downloaded_the_JSON,_granted_access.txt
+*service-account*.json
+*-key.json
+*.pem
+.env
+.env.*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
