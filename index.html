@@ -215,6 +215,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
     <div class="nav-item" onclick="go('customers',this)"><span class="nav-icon">👥</span>Customers</div>
     <div class="nav-item" onclick="go('riders',this)"><span class="nav-icon">🛵</span>Riders</div>
     <div class="nav-item" onclick="go('deliveries',this)"><span class="nav-icon">🗺️</span>Deliveries</div>
+    <div class="nav-item" onclick="go('earnings',this)"><span class="nav-icon">💰</span>Payouts</div>
     <div class="nav-sec">Growth</div>
     <div class="nav-item" onclick="go('livelit',this)"><span class="nav-icon">🔴</span>LiveLit House</div>
     <div class="nav-item" onclick="go('outreach',this)"><span class="nav-icon">📣</span>Outreach</div>
@@ -304,6 +305,23 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
   <div class="panel">
     <div class="panel-hd"><div class="panel-title">Vendor Accounts</div><span id="vendor-count" style="font-size:12px;color:var(--muted)"></span></div>
     <div class="tw"><table><thead><tr><th>Vendor</th><th>Type</th><th>Business Name</th><th>City</th><th>Status</th><th>Stripe</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="vendors-tbl"><tr><td colspan="8" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SELLER PAYOUTS ═══════════════ -->
+<div class="page" id="p-earnings">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+    <div class="stat"><div class="stat-label">Total Held</div><div class="stat-val" id="e-total" style="color:var(--amber)">--</div><div class="stat-sub">owed to sellers</div></div>
+    <div class="stat"><div class="stat-label">Sellers Owed</div><div class="stat-val" id="e-sellers" style="color:var(--green)">--</div><div class="stat-sub">with a held balance</div></div>
+    <div class="stat"><div class="stat-label">Releasable Now</div><div class="stat-val" id="e-releasable" style="color:var(--teal)">--</div><div class="stat-sub">Stripe-connected</div></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:16px">
+    <div style="font-size:12px;color:var(--muted);max-width:60%">Money the platform is holding for sellers who sold before connecting Stripe. <b>Pay out</b> transfers it to their Stripe account (real money, irreversible). <b>Mark settled</b> just records an off-platform payment — no money moves.</div>
+    <button class="btn btn-g" onclick="buildEarnings()">↻ Refresh</button>
+  </div>
+  <div class="panel">
+    <div class="panel-hd"><div class="panel-title">Held Earnings</div><span id="earnings-count" style="font-size:12px;color:var(--muted)"></span></div>
+    <div class="tw"><table><thead><tr><th>Seller</th><th>Business</th><th>Held</th><th>Orders</th><th>Stripe</th><th>Actions</th></tr></thead><tbody id="earnings-tbl"><tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -755,7 +773,7 @@ tbody td{padding:13px 16px;font-size:13px;white-space:nowrap}
 const API = 'https://api.yumcycle.com/api'
 const SITE = 'https://dev.yumcycle.com'
 const ADMIN_KEY_STORE = 'yc_admin_key'
-const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',livelit:'LiveLit House',outreach:'Creator Outreach',marketing:'Marketing Automation',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',vouchers:'Vouchers',analytics:'Analytics',settings:'Settings',website:'Website'}
+const titles = {overview:'Overview',vendors:'Vendors',orders:'Orders',customers:'Customers',riders:'Riders',deliveries:'Deliveries',earnings:'Seller Payouts',livelit:'LiveLit House',outreach:'Creator Outreach',marketing:'Marketing Automation',waitlist:'Waitlist',carbon:'Carbon Tracker',wallets:'Carbon Wallets',leaderboard:'Leaderboard',compliance:'Compliance',sponsors:'Sponsorship Programme',vouchers:'Vouchers',analytics:'Analytics',settings:'Settings',website:'Website'}
 
 // ── State ────────────────────────────────────────────────────────
 let adminKey = localStorage.getItem(ADMIN_KEY_STORE) || ''
@@ -777,6 +795,7 @@ function go(id, navEl) {
   if (id === 'orders')     buildOrders()
   if (id === 'customers')  buildCustomers()
   if (id === 'deliveries') buildDeliveries()
+  if (id === 'earnings')   buildEarnings()
   if (id === 'waitlist')   buildWaitlist()
   if (id === 'marketing')  buildMarketing()
   if (id === 'website')    buildWebsite()
@@ -1171,6 +1190,79 @@ async function doUpdateSellerStatus(sellerId, status, btnEl) {
     btnEl.disabled = false
     btnEl.textContent = orig
     alert('Failed to update vendor status. Please try again.')
+  }
+}
+
+// ── Seller Payouts (held earnings) ───────────────────────────────
+let earningsCache = []
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+async function buildEarnings() {
+  document.getElementById('earnings-tbl').innerHTML = '<tr><td colspan="6" class="loading"><div class="spin"></div><br>Loading…</td></tr>'
+  try {
+    const r = await fetch(`${API}/earnings/held`, { headers: { 'x-admin-key': adminKey } })
+    if (!r.ok) throw new Error()
+    const d = await r.json()
+    const data = d.data || {}
+    earningsCache = data.sellers || []
+    setText('e-total', '£' + Number(data.grandTotal || 0).toFixed(2))
+    setText('e-sellers', earningsCache.length)
+    setText('e-releasable', earningsCache.filter(s => s.releasable).length)
+    renderEarningsTable(earningsCache)
+  } catch {
+    document.getElementById('earnings-tbl').innerHTML = '<tr><td colspan="6" class="loading" style="color:var(--red)">Failed to load payouts. Check your admin key.</td></tr>'
+  }
+}
+
+function renderEarningsTable(sellers) {
+  const countEl = document.getElementById('earnings-count')
+  if (countEl) countEl.textContent = `${sellers.length} seller${sellers.length !== 1 ? 's' : ''} owed`
+  if (!sellers.length) {
+    document.getElementById('earnings-tbl').innerHTML = '<tr><td colspan="6" class="loading" style="color:var(--muted)">No held earnings — every seller is settled 🎉</td></tr>'
+    return
+  }
+  document.getElementById('earnings-tbl').innerHTML = sellers.map(s => {
+    const held = Number(s.heldTotal || 0).toFixed(2)
+    const stripe = s.connected
+      ? '<span style="color:var(--green);font-weight:600">Live</span>'
+      : '<span style="color:var(--muted)">Not connected</span>'
+    const payBtn = s.releasable
+      ? `<button class="btn btn-g" onclick="releaseSellerPayout('${s.sellerId}', ${Number(s.heldTotal || 0)}, this)">Pay out £${held}</button>`
+      : `<button class="btn" disabled title="Seller must connect Stripe first" style="opacity:.45;cursor:not-allowed">Pay out</button>`
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px">…${escHtml(String(s.sellerId).slice(-8))}</td>
+      <td>${escHtml(s.businessName || '—')}</td>
+      <td style="font-weight:700;font-variant-numeric:tabular-nums">£${held}</td>
+      <td>${s.orders}</td>
+      <td>${stripe}</td>
+      <td><div style="display:flex;gap:6px">${payBtn}<button class="btn" onclick="markSettled('${s.sellerId}', this)">Mark settled</button></div></td>
+    </tr>`
+  }).join('')
+}
+
+async function releaseSellerPayout(sellerId, amount, btnEl) {
+  if (!confirm(`Transfer £${Number(amount).toFixed(2)} to this seller's Stripe account now?\n\nThis moves REAL money and cannot be undone.`)) return
+  await doRelease(sellerId, 'stripe_transfer', null, btnEl)
+}
+async function markSettled(sellerId, btnEl) {
+  const note = prompt("Mark this seller's held balance as settled OFF-platform (no money moves here). Optional note:")
+  if (note === null) return
+  await doRelease(sellerId, 'manual', note || 'Settled off-platform', btnEl)
+}
+async function doRelease(sellerId, method, note, btnEl) {
+  const orig = btnEl.textContent; btnEl.disabled = true; btnEl.textContent = '…'
+  try {
+    const r = await fetch(`${API}/earnings/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify({ sellerId, method, note })
+    })
+    const d = await r.json()
+    if (!r.ok) throw new Error((d && d.message) || 'failed')
+    buildEarnings()
+  } catch (e) {
+    btnEl.disabled = false; btnEl.textContent = orig
+    alert('Release failed: ' + (e.message || 'try again'))
   }
 }
 
